@@ -9,7 +9,7 @@ server: server.cpp
 client: client.cpp
 	$(CXX) $(CPPFLAGS) $^ -o $@
 	
-server-api: server-api.cpp
+server-api: server-api.cpp 
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
 .PHONY : clean
