@@ -1,16 +1,23 @@
 TARGETS = server client server-api
 CPPFLAGS = -g -Wall -Werror -pthread
 
-all: $(TARGETS)
+SRC_CPP_FILES := $(wildcard *.cpp)
 
+$(OBJS_CPP): $(SRC_CPP_FILES)
+	$(CXX) $(CPPFLAGS) $^ -c
+	
+all: $(TARGETS)
+	
 server: server.cpp
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
 client: client.cpp
 	$(CXX) $(CPPFLAGS) $^ -o $@
 	
-server-api: server-api.cpp 
+server-api: server-api.cpp candidate.o
 	$(CXX) $(CPPFLAGS) $^ -o $@
+	
+
 
 .PHONY : clean
 clean::

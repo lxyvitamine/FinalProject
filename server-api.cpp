@@ -1,3 +1,6 @@
+#include "candidate.h"
+
+
 vector<int> tids;
 
 //candidate: name / real(fake) / votes
@@ -168,6 +171,9 @@ int main(int argc, char *argv[])
             
     }
     
+//     candidate* c = new candidate();
+    
+//     c->print();
     
     return 0;
 }
