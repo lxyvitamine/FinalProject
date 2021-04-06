@@ -34,6 +34,40 @@ int highest_vote = 0;
 
 
 
+std::vector<std::string> parseCmd(const std::string &raw_line, const std::string &delim)
+{
+    std::vector<std::string> res;
+    if (raw_line == "")
+    {
+#if PRINT
+        std::cout << "empty string" << std::endl;
+#endif
+        return res;
+    }
+    else
+    {
+        char *strs = new char[raw_line.length() + 1];
+        std::strcpy(strs, raw_line.c_str());
+
+        char *d = new char[delim.length() + 1];
+        std::strcpy(d, delim.c_str());
+
+        char *p = std::strtok(strs, d);
+        while (p)
+        {
+            std::string s = p;
+            res.push_back(s);
+            p = std::strtok(NULL, d);
+        }
+        delete[] strs;
+        delete[] d;
+        delete[] p;
+        return res;
+    }
+}
+
+
+
 //  ADMIN //
 void start_election(string cmdpassword){
     //TODO
@@ -44,17 +78,19 @@ void start_election(string cmdpassword){
    ofs.close();
     
     cout<<"[C]: start_election " << cmdpassword << endl;
-    if(isOngoing == true){
-        cout<<"[R]: EXISTS" << endl;
-    }
-    else if(cmdpassword == password){
-        ongoing = true;
-        cout<<"[R]: OK" << endl;
-    }
-    else if(cmdpassword != password){
+    if(cmdpassword != password){
         cout<<"[R]: ERROR" << endl;
+    }else{
+        
+      if(isOngoing == true){
+        cout<<"[R]: EXISTS" << endl;
+      }
+    
+        isOngoing = true;
+        cout<<"[R]: OK" << endl;
+        
     }
-
+    
     return;
 }
 
@@ -64,6 +100,7 @@ void end_election(string cmdpassword)
     if (isOngoing == false || cmdpassword != password)
     {
         cout << "[R]: ERROR" << endl;
+        return;
     }
 
     isOngoing = false;
@@ -79,29 +116,31 @@ void end_election(string cmdpassword)
         cout << candidates[i]->getName() << ":" << candidates[i]->getVotes() << endl;
     }
     
+    view_result();
     
-    if(highest_vote == 0){
-        cout<<"No Winner" << endl;
-        return;
-    }
     
-    vector<Candidate*> winner;
-    //TODO find the winner and draw
-    for(int i = 0; i < candidates.size(); i++){
-        if(candidates[i] -> getVotes() == highest_vote){
-            winner.push_back(candidates[i]);
-        }
-    }
+//     if(highest_vote == 0){
+//         cout<<"No Winner" << endl;
+//         return;
+//     }
     
-    cout<<"Draw: ";
-    for(int i = 0; i < winner.size(); i++){
-        cout<< winner[i] -> getName();
+//     vector<Candidate*> winner;
+//     //TODO find the winner and draw
+//     for(int i = 0; i < candidates.size(); i++){
+//         if(candidates[i] -> getVotes() == highest_vote){
+//             winner.push_back(candidates[i]);
+//         }
+//     }
+    
+//     cout<<"Draw: ";
+//     for(int i = 0; i < winner.size(); i++){
+//         cout<< winner[i] -> getName();
         
-        if(i != winner.size() - 1){
-            cout<<", ";
-        }
-    }
-    cout<<endl;
+//         if(i != winner.size() - 1){
+//             cout<<", ";
+//         }
+//     }
+//     cout<<endl;
     
     return;
 }
@@ -123,6 +162,7 @@ void add_candidate(string cmdpassword, string candiName){
     }
 
     Candidate* c = new Candidate(candiName, 0);
+    
     candidates.push_back(c);
     cout << "[R]: OK" << endl;
 
@@ -174,7 +214,7 @@ void shutdown(string cmdpassword)
         //write Voters
         myfile<<"VOTER"<<endl;
         for(int i = 0; i < voters.size(); i++){
-            string voterInfo = to_string(voters[i]->getId()) + to_string(voters[i] -> getMagicNum());
+            string voterInfo = to_string(voters[i]->getId()) +" "+ to_string(voters[i] -> getMagicNum());
             myfile<<voterInfo<<endl;
         }
 
@@ -293,16 +333,7 @@ void recover()
         string candidateInfo;
         while (getline(myfile, candidateInfo) && candidateInfo != "VOTER")
         {
-            char cinfo[10];
-            vector<string> store;
-            strcpy(cinfo, candidateInfo.c_str());
-            char *token = strtok(cinfo, " ");
-
-            while (token != NULL)
-            {
-                store.push_back(string(token));
-            }
-
+            vector<string> store = parseCmd(candidateInfo, " ");
             Candidate *c = new Candidate(store[0], stoi(store[1]));
             candidates.push_back(c);
         }
@@ -310,16 +341,7 @@ void recover()
         string voterInfo;
         while (getline(myfile, voterInfo))
         {
-            char vinfo[10];
-            vector<string> vstore;
-            strcpy(vinfo, voterInfo.c_str());
-            char *token = strtok(vinfo, " ");
-
-            while (token != NULL)
-            {
-                vstore.push_back(string(token));
-            }
-
+            vector<string> vstore = parseCmd(voterInfo, " ");
             Voter *v = new Voter(stoi(vstore[0]), stoi(vstore[1]));
             voters.push_back(v);
         }
