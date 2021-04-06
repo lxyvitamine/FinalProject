@@ -26,7 +26,6 @@ string password = "cit595";
 vector<string> inputs;
 vector<Candidate> candidates;
 vector<Voter> voters;
-
 bool isOngoing;
 bool isShut = false;
 int highest_vote = 0;
