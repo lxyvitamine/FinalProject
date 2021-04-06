@@ -16,10 +16,12 @@
 using namespace std;
 
 //global variable
+static int MAX_LIMIT = 9999;
+pthread_t threads[MAX_LIMIT];
+int running_thread = 0;
 //
 //password
 string password = "cit595";
-//vector<pthread_t> threads;
 vector<string> inputs;
 vector<Candidate> candidates;
 vector<Voter> voters;
@@ -27,8 +29,10 @@ bool ongoing;
 
 
 
-// //  ADMIN //
+//  ADMIN //
 void start_election(string cmdpassword){
+    //TODO
+    //clean the backup.txt file
     cout<<"[C]: start_election " << cmdpassword << endl;
     if(ongoing == true){
         cout<<"[R]: EXISTS" << endl;
@@ -237,6 +241,7 @@ int main(int argc, char *argv[])
     //2. read input
     while (1)
     {
+        //mutex?
         string input;
         //get line
         getline(cin, input);
@@ -245,9 +250,8 @@ int main(int argc, char *argv[])
         inputs.push_back(input);
         int size = inputs.size();
 
-        pthread_t tid;
-
-        pthread_create(&tid, NULL, parseUserinput, &inputs[size - 1]);
+        pthread_create(&threads[running_thread], NULL, parseUserinput, &inputs[size - 1]);
+        running_thread++;
     }
     
     //TODO join all threads
