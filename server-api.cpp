@@ -5,6 +5,7 @@
 #include <string>
 #include <stdio.h>
 #include <unistd.h>
+#include <fstream> 
 
 
 // map<candidate, num_votes>;
@@ -27,8 +28,9 @@ string password = "cit595";
 vector<string> inputs;
 vector<Candidate> candidates;
 vector<Voter> voters;
-bool ongoing;
-bool shutdown = false;;
+bool isOngoing;
+bool isShut = false;
+int highest_vote = 0;
 
 
 
@@ -37,8 +39,12 @@ void start_election(string cmdpassword){
     //TODO
     //clean the backup.txt file
     
+   ofstream ofs;
+   ofs.open("backup.txt", std::ofstream::out | std::ofstream::trunc);
+   ofs.close();
+    
     cout<<"[C]: start_election " << cmdpassword << endl;
-    if(ongoing == true){
+    if(isOngoing == true){
         cout<<"[R]: EXISTS" << endl;
     }
     else if(cmdpassword == password){
@@ -55,12 +61,18 @@ void start_election(string cmdpassword){
 void end_election(string cmdpassword)
 {
     cout << "[C]: end_election " << cmdpassword << endl;
-    if (ongoing == false || cmdpassword != password)
+    if (isOngoing == false || cmdpassword != password)
     {
         cout << "[R]: ERROR" << endl;
     }
 
-    ongoing = false;
+    isOngoing = false;
+    
+    //end thread
+    for (int i = 0; i < running_thread; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
 
     for (int i = 0; i < candidates.size(); i++)
     {
@@ -68,17 +80,37 @@ void end_election(string cmdpassword)
     }
     
     
-
-    //TODO find the winner and draw
+    if(highest_vote == 0){
+        cout<<"No Winner" << endl;
+        return;
+    }
     
-    //TODO join all threads ?
+    vector<Candidate*> winner;
+    //TODO find the winner and draw
+    for(int i = 0; i < candidates.size(); i++){
+        if(candidates[i] -> getVotes() == highest_vote){
+            winner.push_back(candidates[i]);
+        }
+    }
+    
+    cout<<"Draw: ";
+    for(int i = 0; i < winner.size(); i++){
+        cout<< winner[i] -> getName();
+        
+        if(i != winner.size() - 1){
+            cout<<", ";
+        }
+    }
+    cout<<endl;
+    
+    return;
 }
 
 void add_candidate(string cmdpassword, string candiName){
     //check if ongoing
     
     cout << "[C]: add_candidate " << cmdpassword << candiName << endl;
-    if(cmdpassword != password || ongoing == false){
+    if(cmdpassword != password || isOngoing == false){
         cout << "[R]: ERROR" << endl;
         return;
     }
@@ -90,7 +122,7 @@ void add_candidate(string cmdpassword, string candiName){
         }
     }
 
-    Candidate* c = new Candidate(candiName);
+    Candidate* c = new Candidate(candiName, 0);
     candidates.push_back(c);
     cout << "[R]: OK" << endl;
 
@@ -106,13 +138,12 @@ void shutdown(string cmdpassword)
     cout << "[C]: shutdown " << cmdpassword << endl;
 
     //if password doesn't match || election ends
-    if (ongoing == false || password != cmdpassword)
+    if (isOngoing == false || password != cmdpassword)
     {
         cout << "[R]: ERROR" << endl;
     }
 
-    //end ongoing election
-    ongoing = false;
+    //shutdown server
     shutdown = true;
 
     //end thread
@@ -121,7 +152,34 @@ void shutdown(string cmdpassword)
         pthread_join(threads[i], NULL);
     }
 
-    //TODO write into backup.txt
+        //TODO write into backup.txt
+     ofstream myfile("backup.txt");
+
+     if(myfile.is_open()){
+        //write condition
+        if(isOngoing){
+            myfile<<"1"<<endl;
+        }else{
+            myfile<<"0"<<endl;
+        }
+
+
+        //write candidate
+        myfile<<"CANDIDATE"<<endl;
+        for(int i = 0; i < candidates.size(); i++){
+            string candidateInfo = candidates[i] -> getName() + " " + to_string(candidates[i] -> getVotes());
+            myfile<<candidateInfo<<endl;
+        }
+
+        //write Voters
+        myfile<<"VOTER"<<endl;
+        for(int i = 0; i < voters.size(); i++){
+            string voterInfo = to_string(voters[i]->getId()) + to_string(voters[i] -> getMagicNum());
+            myfile<<voterInfo<<endl;
+        }
+
+        myfile.close();
+     }
  
 }
 
@@ -129,7 +187,7 @@ void shutdown(string cmdpassword)
 
 void add_voter(int voterId){
      cout << "[C]: add_voter " << voterId << endl;
-    if(ongoing == false || voterId > 9999 || voterId < 1000){
+    if(isOngoing == false || voterId > 9999 || voterId < 1000){
       cout << "[R]: ERROR " << endl;
       return;
     }
@@ -143,7 +201,7 @@ void add_voter(int voterId){
     }
 
     //register a new user
-    Voter* v = new Voter(voterId);
+    Voter* v = new Voter(voterId, 0);
     voters.push_back(v);
     cout << "[R]: OK" << endl;
 
@@ -164,6 +222,7 @@ void add_voter(int voterId){
 //     //voterId innvalid: NOTAVOTER
 //     //already vote: ALREADYVOTED
 //     //ERROR
+
     
 //     //returns a random number on a new line EXISTS + magicNum (random)
     
@@ -207,27 +266,66 @@ void add_voter(int voterId){
      
 // }
 
-// method(string){
-//     //parse string
-//     //check the num of args(vector size)
-    
-//     if(size == 2){
-//         //determine string
-//     }
-    
-    
-//     switch(string)
-        
-//         string == add_vote:
-//         //call add_vote();
-    
-//         string == xx:
-    
-//        //
-// }
 
-void recover(){
-    
+
+void recover()
+{
+    ifstream myfile("backup.txt");
+
+    if (myfile.is_open())
+    {
+        //check condition
+        string ongoing;
+        getline(myfile, ongoing);
+        if (ongoing == "1")
+        {
+            isOngoing = true;
+        }
+        else
+        {
+            isOngoing = false;
+        }
+
+        //check Candidate
+        string candidate;
+        getline(myfile, candidate);
+
+        string candidateInfo;
+        while (getline(myfile, candidateInfo) && candidateInfo != "VOTER")
+        {
+            char cinfo[10];
+            vector<string> store;
+            strcpy(cinfo, candidateInfo.c_str());
+            char *token = strtok(cinfo, " ");
+
+            while (token != NULL)
+            {
+                store.push_back(string(token));
+            }
+
+            Candidate *c = new Candidate(store[0], stoi(store[1]));
+            candidates.push_back(c);
+        }
+
+        string voterInfo;
+        while (getline(myfile, voterInfo))
+        {
+            char vinfo[10];
+            vector<string> vstore;
+            strcpy(vinfo, voterInfo.c_str());
+            char *token = strtok(vinfo, " ");
+
+            while (token != NULL)
+            {
+                vstore.push_back(string(token));
+            }
+
+            Voter *v = new Voter(stoi(vstore[0]), stoi(vstore[1]));
+            voters.push_back(v);
+        }
+
+        myfile.close();
+    }
 }
 
 void *parseUserinput(void *input)
@@ -256,7 +354,8 @@ int main(int argc, char *argv[])
             cout << "password " << optarg << endl;
             break;
         case 'r':
-             shutdown = false;
+            isShut = false;
+            recover();
             //read file
             cout << "recover " << optarg << endl;
             ;
@@ -277,7 +376,7 @@ int main(int argc, char *argv[])
     //2. read input
     while (1)
     {
-        if(shutdown == true){
+        if(isShut  == true){
             exit(0);
             break;
         }

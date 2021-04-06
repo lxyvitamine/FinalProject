@@ -7,7 +7,7 @@ private:
     int votes;
 
 public:
-    Candidate(std::string &name);
+    Candidate(std::string &name, int votes);
 
     ~Candidate();
 
