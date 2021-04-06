@@ -1,7 +1,19 @@
 #include <iostream>
+#include <string>
+class Candidate
+{
+private:
+    std::string name;
+    int votes;
 
-class candidate{
+public:
+    Candidate(std::string &name);
+
+    ~Candidate();
+
+    std::string getName();
+
+    int getVotes();
     
-    public:
-    void print();
+    void setVotes(int votes);
 };

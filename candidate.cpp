@@ -1,9 +1,29 @@
 #include "candidate.h"
 #include <iostream>
 #include <unistd.h>
+#include <string>
 
-void candidate::print(){
+Candidate::Candidate(std::string &name)
+{
+  this->name = name;
+  votes = 0;
+}
 
-  std::cout << "print test "<< std::endl;
+Candidate::~Candidate()
+{
+}
 
+std::string Candidate::getName()
+{
+  return this->name;
+}
+
+int Candidate::getVotes()
+{
+  return this->votes;
+}
+
+void Candidate::setVotes(int votes)
+{
+  this->votes = votes;
 }
