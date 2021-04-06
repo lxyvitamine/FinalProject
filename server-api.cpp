@@ -35,6 +35,7 @@ bool ongoing;
 void start_election(string cmdpassword){
     //TODO
     //clean the backup.txt file
+    
     cout<<"[C]: start_election " << cmdpassword << endl;
     if(ongoing == true){
         cout<<"[R]: EXISTS" << endl;
@@ -97,32 +98,53 @@ void add_candidate(string cmdpassword, string candiName){
 }
 
 
+void shutdown(string cmdpassword)
+{
+    cout << "[C]: shutdown " << cmdpassword << endl;
 
+    //if password doesn't match || election ends
+    if (ongoing == false || password != cmdpassword)
+    {
+        cout << "[R]: ERROR" << endl;
+    }
 
-// shutdown(String password){
-//     //check flag
-//     //[c]: 
-//     //[R]: OK
-//     //flag == true:     
-//     //join      
-//     for(int i ...){
-            
-//     }
-    
-//     //print OK
-    
-//     //save date
-//     //write into backup.txt
-    
-// }
+    //end ongoing ekection
+    ongoing = false;
+
+    //end thread
+    for (int i = 0; i < running_thread; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
+
+    //TODO write into backup.txt
+ 
+}
 
 // // VOTE VOTER//
 
-// add_voter(int voterId){
-//     //check flag
-//     //[c]
-//     //[R] check id range and check if exists
-// }
+void add_voter(int voterId){
+     cout << "[C]: add_voter " << voterId << endl;
+    if(ongoing == false || voterId > 9999 || voterId < 1000){
+      cout << "[R]: ERROR " << endl;
+      return;
+    }
+
+    //check exists
+    for(int i = 0; i < voters.size(); i++){
+        if(voters[i] -> getId() == voterId){
+            cout << "[R]: EXISTS " << endl;
+            return;
+        }
+    }
+
+    //register a new user
+    Voter* v = new Voter(voterId);
+    voters.push_back(v);
+    cout << "[R]: OK" << endl;
+
+    return;
+}
 
 
 // vote_for(String name, int voterId){
@@ -203,8 +225,9 @@ void add_candidate(string cmdpassword, string candiName){
 void *parseUserinput(void *input)
 {
     //TODO parse input string
-    
+    //mutex
     string userinput = *(static_cast<std::string *>(input));
+    
     sleep(3);
     cout << "input is" << userinput << endl;
 
@@ -251,7 +274,9 @@ int main(int argc, char *argv[])
 
         inputs.push_back(input);
         int size = inputs.size();
-
+        
+        pthread_t tid1;
+        
         pthread_create(&threads[running_thread], NULL, parseUserinput, &inputs[size - 1]);
         running_thread++;
     }
