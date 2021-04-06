@@ -1,10 +1,11 @@
 #include "voter.h"
 
-Voter::Voter(int voterId)
+Voter::Voter(int voterId, int magic)
 {
     id = voterId;
-    magicNum = 0;
+    magicNum = magic;
 }
+
 
 Voter::~Voter()
 {
@@ -15,10 +16,7 @@ int Voter::getId()
 {
     return this->id;
 }
-void Voter::setId(int id)
-{
-    this->id = id;
-}
+
 
 int Voter::getMagicNum()
 {

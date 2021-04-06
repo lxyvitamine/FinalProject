@@ -9,12 +9,11 @@ private:
     int magicNum;
 
 public:
-    Voter(int voterId);
+    Voter(int voterId, int magic);
     ~Voter();
     
     
     int getId();
-    void setId(int id);
 
     int getMagicNum();
     void setMagicNum(int magic);

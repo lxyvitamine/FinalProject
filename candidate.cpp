@@ -3,10 +3,10 @@
 #include <unistd.h>
 #include <string>
 
-Candidate::Candidate(std::string &name)
+Candidate::Candidate(std::string &name, int votes)
 {
   this->name = name;
-  votes = 0;
+  this->votes = votes;
 }
 
 Candidate::~Candidate()
@@ -23,7 +23,7 @@ int Candidate::getVotes()
   return this->votes;
 }
 
-void Candidate::setVotes(int votes)
+void Candidate::addVotes()
 {
-  this->votes = votes;
+  this->votes++;
 }
