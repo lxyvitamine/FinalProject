@@ -6,6 +6,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fstream> 
+// xiaoyan
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+#include <algorithm>
+vector<int> generatedValues;
+
 
 // map<candidate, num_votes>;
 // map<Fakecandidate, num_votes>; // if not real candidate, negative
@@ -260,40 +266,139 @@ void add_voter(int voterId){
     return;
 }
 
-// vote_for(String name, int voterId){
-//     //check flag
+// helper funtion to generate magic number
+int generateUniqueInt(){
+    
+    int num = rand() % 100000 + 1;
+    
+    //check whether the num is in this vector, while contains
+    while(std::find(generatedValues.begin(), generatedValues.end(), num) != generatedValues.end()) 
+    {
+        num = rand() % 100000 + 1;
+    }
+    
+    return num;
+}
 
-//     //if not voted, add votes
-//     //If the named candidate is not already present in the system, add the candidate to the system with a vote count of 1
-//     //if the candidate is already present in the system, increment their vote count by 1
+void vote_for(String name, int voterId){
+    //check flag
+    cout << "[C]: vote_for " << name << voterId << endl;
+    
+    if(isOngoing == false || voterId > 9999 || voterId < 1000){
+      cout << "[R]: ERROR " << endl;
+      return;
+    }
+    
+    //check if voter exists, voterId innvalid: NOTAVOTER
+    for(int i = 0; i < voters.size(); i++){
+        if(voters[i] -> getId() != voterId){
+            cout << "[R]: NOTAVOTER " << endl;
+            return;
+        }
+    }
+    
+    //check if voter already voted, already voted: ALREADYVOTED
+    for(int i = 0; i < voters.size(); i++){
+        if(voters[i] -> getMagicNum() != 0){ // magic number != 0, voted
+            cout << "[R]: ALREADYVOTED " << endl;
+            return;
+        }
+    }
 
-//     //[R]
-//     //if candidate exists in system: EXISTS
-//     //if not: NEW
-//     //voterId innvalid: NOTAVOTER
-//     //already vote: ALREADYVOTED
-//     //ERROR
+    //check if candidate exists
+    //candidate exists in system: EXISTS
+    //candidate not exists in system: NEW
+    for(int i = 0; i < candidates.size(); i++){
+        if(candidates[i] -> getName() == name){
+            cout << "[R]: EXISTS " << "\n" << endl;
+            //increment vote count by 1
+            candidates[i] -> addVotes();
+        } else { //candidate didn't exist
+            Candidate* c = new Candidate(name, 1); // set vote to 1
+            candidates.push_back(c);
+            cout << "[R]: NEW " << "\n" << endl;
+            // create new candidate
+        }
+    }
+    
+    //get current candidate vote and compare with highest_vote
+    //update if larger
+    for(int i = 0; i < candidates.size(); i++){
+        if(candidates[i] -> getName() == name){
+            if (candidates[i] -> getVotes() > highest_vote) {
+                highest_vote = candidates[i] -> getVotes();
+            }
+        }
+    }
+    
+    //finish vote and return magic number
+    int magicNumber;
+    //initialize random seed and generate random number from 1 to 100000
+    srand (time(NULL));
+    int magicNumber = generateUniqueInt();
+    // print magicNumber
+    cout << magicNumber << endl;
+}
 
 
-//     //returns a random number on a new line EXISTS + magicNum (random)
+void check_registration_status(int voterId){
+    //check flag
+    //
+    //[R] EXISTS// INVALID // UNREGISTERED //ERROR
+        //check flag
+    cout << "[C]: check_registration_status " << voterId << endl;
+    
+    if(isOngoing == false){
+      cout << "[R]: ERROR " << endl;
+      return;
+    }
+    
+    if(voterId > 9999 || voterId < 1000){ // id out of range
+        cout << "[R]: INVALID " << endl;
+    }
+    
+    //check if voter exists
+    for(int i = 0; i < voters.size(); i++){
+        if(voters[i] -> getId() == voterId){
+            cout << "[R]: EXISTS " << endl;
+            return;
+    }
+    
+    cout << "[R]: UNREGISTERED " << endl;
+    return;
+}
 
-// }
+void check_voter_status(int voterId, int magicNum){
+    //check flag
+    //[R] 
+    //“ALREADYVOTED” if voter has voted
+    //“CHECKSTATUS” if voter isn’t registered
+    //“UNAUTHORIZED” if magicno doesn’t match records 
+    //“ERROR” if there is any error
+    cout << "[C]: check_voter_status " << voterId << magicNum << endl;
+    
+    if(isOngoing == false || voterId > 9999 || voterId < 1000){
+      cout << "[R]: ERROR " << endl;
+      return;
+    }
+    
+    for(int i = 0; i < voters.size(); i++){
+        if(voters[i] -> getId() == voterId){
+            if (voters[i] -> getMagicNum() != magicNum){ // wrong magicNum
+                cout << "[R]: UNAUTHORIZED " << endl;
+                return;
+            } else {
+                cout << "[R]: ALREADYVOTED " << endl;
+                return;
+            }
+        }
+    }
+    
+    // voter not in voters
+    cout << "[R]: CHECKSTATUS " << endl;
+    return;
+}
 
-// check_registration_status(int voterId){
-//     //check flag
-//     //
-//     //[R] EXISTS// INVALID // UNREGISTERED //ERROR
-// }
-
-// check_voter_status(int voterId, int magicNum){
-//     //check flag
-
-//     //[R]
-//     //“ALREADYVOTED” if voter has voted
-//     //“CHECKSTATUS” if voter isn’t registered
-//     //“UNAUTHORIZED” if magicno doesn’t match records
-//     //“ERROR” if there is any error both incorrect
-// }
 
 //ANY USER
 void list_candidtate()
