@@ -16,7 +16,9 @@
 using namespace std;
 
 //global variable
-static int MAX_LIMIT = 9999;
+//
+//dealing with threads
+static const int MAX_LIMIT = 9999;
 pthread_t threads[MAX_LIMIT];
 int running_thread = 0;
 //
