@@ -28,6 +28,7 @@ vector<string> inputs;
 vector<Candidate> candidates;
 vector<Voter> voters;
 bool ongoing;
+bool shutdown = false;;
 
 
 
@@ -65,6 +66,8 @@ void end_election(string cmdpassword)
     {
         cout << candidates[i]->getName() << ":" << candidates[i]->getVotes() << endl;
     }
+    
+    
 
     //TODO find the winner and draw
     
@@ -108,8 +111,9 @@ void shutdown(string cmdpassword)
         cout << "[R]: ERROR" << endl;
     }
 
-    //end ongoing ekection
+    //end ongoing election
     ongoing = false;
+    shutdown = true;
 
     //end thread
     for (int i = 0; i < running_thread; i++)
@@ -222,6 +226,10 @@ void add_voter(int voterId){
 //        //
 // }
 
+void recover(){
+    
+}
+
 void *parseUserinput(void *input)
 {
     //TODO parse input string
@@ -248,6 +256,7 @@ int main(int argc, char *argv[])
             cout << "password " << optarg << endl;
             break;
         case 'r':
+             shutdown = false;
             //read file
             cout << "recover " << optarg << endl;
             ;
@@ -262,10 +271,16 @@ int main(int argc, char *argv[])
             break;
         }
     }
+    
+    
 
     //2. read input
     while (1)
     {
+        if(shutdown == true){
+            exit(0);
+            break;
+        }
         //mutex?
         string input;
         //get line
