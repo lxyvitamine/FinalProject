@@ -25,5 +25,5 @@ int Candidate::getVotes()
 
 void Candidate::addVotes()
 {
-  this->votes++;
+   this->votes++;
 }

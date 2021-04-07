@@ -1,0 +1,4 @@
+0
+CANDIDATE
+bob 0
+VOTER
