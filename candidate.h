@@ -15,5 +15,5 @@ public:
 
     int getVotes();
     
-    void setVotes(int votes);
+    void addVotes();
 };
