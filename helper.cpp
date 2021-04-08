@@ -11,18 +11,21 @@ int running_thread = 0;
 string password = "cit595";
 vector<Candidate *> candidates;
 vector<Voter *> voters;
-set<int> generatedValues;
+vector<int> generatedValues;
+
 // flag
 bool isOngoing = false;
 int highest_vote = 0;
 bool changePassword = false;
 // main() & mutex
-vector<string> userCmds;
+string userCmds[MAX_LIMIT];
+
 pthread_mutex_t parseLock;
 // pthread_mutex_t userCmdsLock;
 // pthread_mutex_t candidatesLock;
 // pthread_mutex_t votersLock;
-// pthread_mutex_t methodLock;
+pthread_mutex_t methodLock;
+
 // pthread_mutex_t inputLock;
 // pthread_mutex_t magicNumLock;
 
@@ -165,16 +168,14 @@ void end_election(string cmdpassword)
     isOngoing = false;
 
     // end thread
+	pthread_mutex_lock(&methodLock);
     for (int i = 0; i < running_thread; i++)
     {
-        cout << threads[i] << endl;
-        int rt = pthread_detach(threads[i]);
-
-        if (rt != 0)
-        {
-            cout << "Fail to join " << endl;
-        }
+        pthread_detach(threads[i]);
     }
+
+	pthread_mutex_unlock(&methodLock);
+
 
     view_result_helper();
 
@@ -212,7 +213,7 @@ void add_candidate(string cmdpassword, string candiName)
 }
 
 void shutdown(string cmdpassword)
-{
+{	
     cout << "[C]: shutdown " << cmdpassword << endl;
 
     // if password doesn't match, print error
@@ -225,7 +226,7 @@ void shutdown(string cmdpassword)
     // end thread
     if (isOngoing)
     {
-        for (int i = 0; i <= running_thread; i++)
+        for (int i = 0; i < running_thread; i++)
         {
             pthread_detach(threads[i]);
         }
@@ -285,9 +286,6 @@ void shutdown(string cmdpassword)
 
     cout << "[R]: OK" << endl;
 
-    pthread_mutex_unlock(&parseLock);
-
-    exit(0);
 }
 
 // VOTER //
