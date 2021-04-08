@@ -43,10 +43,10 @@ void *parseUserinput(void *input)
         {
             end_election(arg);
         }
-        else if (cmd == "shutdown")
-        {
-            shutdown(arg);
-        }
+//         else if (cmd == "shutdown")
+//         {
+//             shutdown(arg);
+//         }
         else if (cmd == "add_voter")
         {
             if (!isNumber(arg))
@@ -167,6 +167,7 @@ int main(int argc, char *argv[])
     if (0 != pthread_mutex_init(&methodLock, NULL))
         throw "Failed to initialize a mutex";
 
+
     // //     if (0 != pthread_mutex_init(&userCmdsLock, NULL))
     // //         throw "Failed to initialize a mutex";
 
@@ -195,7 +196,6 @@ int main(int argc, char *argv[])
 			 shutdown(password);
 			 pthread_mutex_unlock(&parseLock);
 			 exit(0);
-// 			 exit(0);
 		 }
 
         userCmds[running_thread] = input;
@@ -207,6 +207,7 @@ int main(int argc, char *argv[])
         running_thread++;
         pthread_mutex_unlock(&methodLock);
         // pthread_mutex_unlock(&parseLock);
+
     }
 
     return 0;
