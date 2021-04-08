@@ -1,16 +1,16 @@
 #include "helper.h"
+
 using namespace std;
 
 // input Parser and call the related funtion
 void *parseUserinput(void *input)
 {
     // mutex
-     pthread_mutex_lock(&parseLock);
-    string userinput = *(static_cast<string *>(input));
+    pthread_mutex_lock(&parseLock);
 
+    string userinput = *(static_cast<string *>(input));
     vector<string> inputs = parseCmd(userinput, " ");
 
-    
     // mutex
     // no argument
     if (inputs.size() == 1)
@@ -69,7 +69,6 @@ void *parseUserinput(void *input)
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
             }
-
             check_registration_status(stoi(arg));
         }
         else if (cmd == "vote_count")
@@ -126,10 +125,10 @@ void *parseUserinput(void *input)
         cout << "ERROR6" << endl;
     }
     //pthread_exit(NULL);
-    
+
     pthread_mutex_unlock(&parseLock);
-    
-    return NULL; 
+
+    return NULL;
 }
 
 // MAIN //
@@ -161,53 +160,43 @@ int main(int argc, char *argv[])
             break;
         }
     }
+
     if (0 != pthread_mutex_init(&parseLock, NULL))
         throw "Failed to initialize a mutex";
-    
-//     if (0 != pthread_mutex_init(&methodLock, NULL))
-//         throw "Failed to initialize a mutex";
-    
-// //     if (0 != pthread_mutex_init(&userCmdsLock, NULL))
-// //         throw "Failed to initialize a mutex";
-    
-//     if (0 != pthread_mutex_init(&candidatesLock, NULL))
-//         throw "Failed to initialize a mutex";
-    
-//     if (0 != pthread_mutex_init(&votersLock, NULL))
-//         throw "Failed to initialize a mutex";
-    
-//     if (0 != pthread_mutex_init(&inputLock, NULL))
-//         throw "Failed to initialize a mutex";
+
+    //     if (0 != pthread_mutex_init(&methodLock, NULL))
+    //         throw "Failed to initialize a mutex";
+
+    // //     if (0 != pthread_mutex_init(&userCmdsLock, NULL))
+    // //         throw "Failed to initialize a mutex";
+
+    //     if (0 != pthread_mutex_init(&candidatesLock, NULL))
+    //         throw "Failed to initialize a mutex";
+
+    //     if (0 != pthread_mutex_init(&votersLock, NULL))
+    //         throw "Failed to initialize a mutex";
+
+    //     if (0 != pthread_mutex_init(&inputLock, NULL))
+    //         throw "Failed to initialize a mutex";
 
     // 2. read input
     while (1)
     {
         // mutex?
-  
+
         string input;
-     
+
         // get line
-        
+
         getline(cin, input);
-        
-        
-   
-        userCmds.push_back(input);  
-     
+
+        userCmds.push_back(input);
+
         pthread_mutex_lock(&parseLock);
         pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[userCmds.size() - 1]);
         running_thread++;
         pthread_mutex_unlock(&parseLock);
-   
-        
-
     }
-    
-    
-    
-    
-    
-    
 
     return 0;
 }

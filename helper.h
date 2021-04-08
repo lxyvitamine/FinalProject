@@ -14,34 +14,33 @@
 using namespace std;
 
 // GLOBAL VARIABLE //
-//dealing with threads
+// dealing with threads
 extern const int MAX_LIMIT;
 extern pthread_t threads[];
 extern int running_thread;
-//password
+// password
 extern string password;
 extern vector<Candidate *> candidates;
 extern vector<Voter *> voters;
-extern vector<int> generatedValues;
+extern set<int> generatedValues;
 // flag
 extern bool isOngoing;
 extern int highest_vote;
 extern bool changePassword;
-
-//Main && mutex
+// main() & mutex
+extern vector<string> userCmds;
 extern pthread_mutex_t parseLock;
 // extern pthread_mutex_t userCmdsLock;
 // extern pthread_mutex_t candidatesLock;
 // extern pthread_mutex_t votersLock;
 // extern pthread_mutex_t methodLock;
 // extern pthread_mutex_t inputLock;
-//extern pthread_mutex_t magicNumLock;
-extern vector<string> userCmds;
-
+// extern pthread_mutex_t magicNumLock;
 
 // helper function
 void view_result_helper();
 bool isNumber(const string &str);
+int generateUniqueInt();
 
 // PARSER //
 std::vector<std::string> parseCmd(const std::string &raw_line, const std::string &delim);
@@ -52,9 +51,8 @@ void end_election(string cmdpassword);
 void add_candidate(string cmdpassword, string candiName);
 void shutdown(string cmdpassword);
 
-// VOTER//
+// VOTER //
 void add_voter(int voterId);
-int generateUniqueInt();
 void vote_for(string name, int voterId);
 void check_registration_status(int voterId);
 void check_voter_status(int voterId, int magicNum);
@@ -66,4 +64,3 @@ void view_result();
 
 // optional argument: -r
 void recover();
-

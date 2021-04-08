@@ -1,19 +1,22 @@
 #include <iostream>
 #include <string>
+
+using namespace std;
+
 class Candidate
 {
 private:
-    std::string name;
+    string name;
     int votes;
 
 public:
-    Candidate(std::string &name, int votes);
+    Candidate(string &name, int votes);
 
     ~Candidate();
 
-    std::string getName();
+    string getName();
 
     int getVotes();
-    
+
     void addVotes();
 };
