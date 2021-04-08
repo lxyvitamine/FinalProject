@@ -18,6 +18,7 @@ int highest_vote = 0;
 bool changePassword = false;
 // main() & mutex
 string userCmds[MAX_LIMIT];
+
 pthread_mutex_t parseLock;
 pthread_mutex_t runningThreadLock;
 // pthread_mutex_t userCmdsLock;
@@ -96,9 +97,9 @@ vector<string> parseCmd(const string &raw_line, const string &delim)
     vector<string> res;
     if (raw_line == "")
     {
-#if PRINT
+        #if PRINT
         cout << "empty string" << endl;
-#endif
+        #endif
         return res;
     }
     else
@@ -224,7 +225,7 @@ void shutdown(string cmdpassword)
         return;
     }
 
-    // end threads
+    // end thread
     if (isOngoing)
     {
         for (int i = 0; i < running_thread; i++)

@@ -29,7 +29,9 @@ extern bool isOngoing;
 extern int highest_vote;
 extern bool changePassword;
 // main() & mutex
+
 extern string userCmds[];
+
 extern pthread_mutex_t parseLock;
 extern pthread_mutex_t runningThreadLock;
 // extern pthread_mutex_t userCmdsLock;

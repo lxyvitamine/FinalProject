@@ -1,6 +1,7 @@
 0
 cit595
-0
+1
 CANDIDATE
+bob 1
 VOTER
-1000 0
+1000 8636

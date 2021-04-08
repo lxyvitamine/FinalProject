@@ -146,7 +146,8 @@ int main(int argc, char *argv[])
             changePassword = true;
             break;
         case 'r':
-            recover(); // read file
+            // read file
+            recover();
             break;
         case 'p':
             //connect to port

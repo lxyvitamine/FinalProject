@@ -7,8 +7,8 @@ using namespace std;
 
 Candidate::Candidate(string &name, int votes)
 {
-  this->name = name;
-  this->votes = votes;
+    this->name = name;
+    this->votes = votes;
 }
 
 Candidate::~Candidate()
@@ -17,15 +17,15 @@ Candidate::~Candidate()
 
 string Candidate::getName()
 {
-  return this->name;
+    return this->name;
 }
 
 int Candidate::getVotes()
 {
-  return this->votes;
+    return this->votes;
 }
 
 void Candidate::addVotes()
 {
-  this->votes++;
+    this->votes++;
 }
