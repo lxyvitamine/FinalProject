@@ -97,9 +97,9 @@ vector<string> parseCmd(const string &raw_line, const string &delim)
     vector<string> res;
     if (raw_line == "")
     {
-        #if PRINT
+#if PRINT
         cout << "empty string" << endl;
-        #endif
+#endif
         return res;
     }
     else
@@ -330,6 +330,8 @@ int generateUniqueMagicNumber()
     {
         num = rand() % 100000 + 1;
     }
+
+    generatedMagicNumbers.insert(num);
 
     return num;
 }
