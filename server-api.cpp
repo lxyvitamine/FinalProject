@@ -25,7 +25,7 @@ void *parseUserinput(void *input)
         }
         else
         {
-            cout << "ERROR1" << endl;
+            cout << "ERROR" << endl;
             //pthread_exit(NULL);
         }
     }
@@ -43,10 +43,10 @@ void *parseUserinput(void *input)
         {
             end_election(arg);
         }
-//         else if (cmd == "shutdown")
-//         {
-//             shutdown(arg);
-//         }
+        // else if (cmd == "shutdown")
+        // {
+        //     shutdown(arg);
+        // }
         else if (cmd == "add_voter")
         {
             if (!isNumber(arg))
@@ -77,7 +77,7 @@ void *parseUserinput(void *input)
         }
         else
         {
-            cout << "ERROR2" << endl;
+            cout << "ERROR" << endl;
             //pthread_exit(NULL);
         }
     }
@@ -97,7 +97,7 @@ void *parseUserinput(void *input)
             if (!isNumber(arg2))
             {
                 //pthread_exit(NULL);
-                cout << "ERROR3" << endl;
+                cout << "ERROR" << endl;
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
             }
@@ -108,7 +108,7 @@ void *parseUserinput(void *input)
             if (!isNumber(arg1) || !isNumber(arg2))
             {
                 //pthread_exit(NULL);
-                cout << "ERROR4" << endl;
+                cout << "ERROR" << endl;
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
             }
@@ -116,13 +116,13 @@ void *parseUserinput(void *input)
         }
         else
         {
-            cout << "ERROR5" << endl;
+            cout << "ERROR" << endl;
             //pthread_exit(NULL);
         }
     }
     else
     {
-        cout << "ERROR6" << endl;
+        cout << "ERROR" << endl;
     }
     //pthread_exit(NULL);
 
@@ -144,12 +144,10 @@ int main(int argc, char *argv[])
         case 'a':
             password = optarg;
             changePassword = true;
-            //cout << "password " << optarg << endl;
             break;
         case 'r':
-            recover();
             // read file
-            //cout << "recover " << endl;
+            recover();
             break;
         case 'p':
             //connect to port
@@ -164,50 +162,42 @@ int main(int argc, char *argv[])
     if (0 != pthread_mutex_init(&parseLock, NULL))
         throw "Failed to initialize a mutex";
 
-    if (0 != pthread_mutex_init(&methodLock, NULL))
+    if (0 != pthread_mutex_init(&runningThreadLock, NULL))
         throw "Failed to initialize a mutex";
 
+    // if (0 != pthread_mutex_init(&userCmdsLock, NULL))
+    //     throw "Failed to initialize a mutex";
 
-    // //     if (0 != pthread_mutex_init(&userCmdsLock, NULL))
-    // //         throw "Failed to initialize a mutex";
+    // if (0 != pthread_mutex_init(&candidatesLock, NULL))
+    //     throw "Failed to initialize a mutex";
 
-    //     if (0 != pthread_mutex_init(&candidatesLock, NULL))
-    //         throw "Failed to initialize a mutex";
+    // if (0 != pthread_mutex_init(&votersLock, NULL))
+    //     throw "Failed to initialize a mutex";
 
-    //     if (0 != pthread_mutex_init(&votersLock, NULL))
-    //         throw "Failed to initialize a mutex";
-
-    //     if (0 != pthread_mutex_init(&inputLock, NULL))
-    //         throw "Failed to initialize a mutex";
+    // if (0 != pthread_mutex_init(&inputLock, NULL))
+    //     throw "Failed to initialize a mutex";
 
     // 2. read input
     while (1)
     {
-        // mutex?
-
         string input;
-
-        // get line
-
         getline(cin, input);
-		 
-		 if (input == "shutdown " + password) {
-			 pthread_mutex_lock(&parseLock);
-			 shutdown(password);
-			 pthread_mutex_unlock(&parseLock);
-			 exit(0);
-		 }
+
+        if (input == "shutdown " + password)
+        {
+            pthread_mutex_lock(&parseLock);
+            shutdown(password);
+            pthread_mutex_unlock(&parseLock);
+            exit(0);
+        }
 
         userCmds[running_thread] = input;
 
-        // pthread_mutex_lock(&parseLock);
         pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
 
-        pthread_mutex_lock(&methodLock);
+        pthread_mutex_lock(&runningThreadLock);
         running_thread++;
-        pthread_mutex_unlock(&methodLock);
-        // pthread_mutex_unlock(&parseLock);
-
+        pthread_mutex_unlock(&runningThreadLock);
     }
 
     return 0;

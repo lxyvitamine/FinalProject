@@ -11,8 +11,7 @@ int running_thread = 0;
 string password = "cit595";
 vector<Candidate *> candidates;
 vector<Voter *> voters;
-vector<int> generatedValues;
-
+unordered_set<int> generatedMagicNumbers;
 // flag
 bool isOngoing = false;
 int highest_vote = 0;
@@ -21,11 +20,10 @@ bool changePassword = false;
 string userCmds[MAX_LIMIT];
 
 pthread_mutex_t parseLock;
+pthread_mutex_t runningThreadLock;
 // pthread_mutex_t userCmdsLock;
 // pthread_mutex_t candidatesLock;
 // pthread_mutex_t votersLock;
-pthread_mutex_t methodLock;
-
 // pthread_mutex_t inputLock;
 // pthread_mutex_t magicNumLock;
 
@@ -40,7 +38,9 @@ void view_result_helper()
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
             if ((*it)->getVotes() == highest_vote)
+            {
                 numOfWinners++;
+            }
             cout << (*it)->getName() << ": " << (*it)->getVotes() << endl;
         }
 
@@ -92,30 +92,30 @@ bool isNumber(const string &str)
 }
 
 // PARSER //
-std::vector<std::string> parseCmd(const std::string &raw_line, const std::string &delim)
+vector<string> parseCmd(const string &raw_line, const string &delim)
 {
-    std::vector<std::string> res;
+    vector<string> res;
     if (raw_line == "")
     {
 #if PRINT
-        std::cout << "empty string" << std::endl;
+        cout << "empty string" << endl;
 #endif
         return res;
     }
     else
     {
         char *strs = new char[raw_line.length() + 1];
-        std::strcpy(strs, raw_line.c_str());
+        strcpy(strs, raw_line.c_str());
 
         char *d = new char[delim.length() + 1];
-        std::strcpy(d, delim.c_str());
+        strcpy(d, delim.c_str());
 
-        char *p = std::strtok(strs, d);
+        char *p = strtok(strs, d);
         while (p)
         {
-            std::string s = p;
+            string s = p;
             res.push_back(s);
-            p = std::strtok(NULL, d);
+            p = strtok(NULL, d);
         }
 
         delete[] strs;
@@ -130,9 +130,12 @@ void start_election(string cmdpassword)
 {
     // TODO
     // clean the backup.txt file
-    ofstream ofs;
-    ofs.open("backup.txt", ofstream::out | ofstream::trunc);
-    ofs.close();
+    if (!isOngoing)
+    {
+        ofstream ofs;
+        ofs.open("backup.txt", ofstream::out | ofstream::trunc);
+        ofs.close();
+    }
 
     cout << "[C]: start_election " << cmdpassword << endl;
 
@@ -148,6 +151,7 @@ void start_election(string cmdpassword)
             cout << "[R]: EXISTS" << endl;
             return;
         }
+
         isOngoing = true;
         cout << "[R]: OK" << endl;
     }
@@ -167,15 +171,13 @@ void end_election(string cmdpassword)
 
     isOngoing = false;
 
-    // end thread
-	pthread_mutex_lock(&methodLock);
+    // end threads
+    pthread_mutex_lock(&runningThreadLock);
     for (int i = 0; i < running_thread; i++)
     {
         pthread_detach(threads[i]);
     }
-
-	pthread_mutex_unlock(&methodLock);
-
+    pthread_mutex_unlock(&runningThreadLock);
 
     view_result_helper();
 
@@ -213,7 +215,7 @@ void add_candidate(string cmdpassword, string candiName)
 }
 
 void shutdown(string cmdpassword)
-{	
+{
     cout << "[C]: shutdown " << cmdpassword << endl;
 
     // if password doesn't match, print error
@@ -286,6 +288,7 @@ void shutdown(string cmdpassword)
 
     cout << "[R]: OK" << endl;
 
+    return;
 }
 
 // VOTER //
@@ -319,15 +322,16 @@ void add_voter(int voterId)
 }
 
 // helper funtion to generate unique magic number
-int generateUniqueInt()
+int generateUniqueMagicNumber()
 {
     int num = rand() % 100000 + 1;
-    //check whether the num is in this vector, while contains, keep creating new number
 
-    while (find(generatedValues.begin(), generatedValues.end(), num) != generatedValues.end())
+    while (generatedMagicNumbers.find(num) != generatedMagicNumbers.end())
     {
         num = rand() % 100000 + 1;
     }
+
+    generatedMagicNumbers.insert(num);
 
     return num;
 }
@@ -405,7 +409,7 @@ void vote_for(string name, int voterId)
 
     // initialize random seed and generate random number from 1 to 100000
     srand(time(NULL));
-    magicNumber = generateUniqueInt();
+    magicNumber = generateUniqueMagicNumber();
 
     // print magicNumber of this voter
     for (int i = 0; i < (int)voters.size(); i++)
@@ -443,15 +447,16 @@ void check_registration_status(int voterId)
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
-        {
-            // voter exist
+        { // voter exist
             cout << "[R]: EXISTS" << endl;
             return;
         }
-        // voter not exist
-        cout << "[R]: UNREGISTERED" << endl;
-        return;
     }
+
+    // voter not exist
+    cout << "[R]: UNREGISTERED" << endl;
+
+    return;
 }
 
 void check_voter_status(int voterId, int magicNum)
@@ -469,14 +474,13 @@ void check_voter_status(int voterId, int magicNum)
         if (voters[i]->getId() == voterId)
         {
             // wrong magicNum, print “UNAUTHORIZED”
-            if (voters[i]->getMagicNum() != magicNum)
+            if (voters[i]->getMagicNum() != magicNum || magicNum == 0)
             {
                 cout << "[R]: UNAUTHORIZED" << endl;
                 return;
             }
             else
-            {
-                // “ALREADYVOTED” if voter has voted
+            { // “ALREADYVOTED” if voter has voted
                 cout << "[R]: ALREADYVOTED" << endl;
                 return;
             }
