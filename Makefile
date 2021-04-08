@@ -13,12 +13,13 @@ server: server.cpp
 
 client: client.cpp
 	$(CXX) $(CPPFLAGS) $^ -o $@
-	
-server-api: server-api.cpp candidate.o voter.o
+
+helper: helper.cpp candidate.o voter.o
 	$(CXX) $(CPPFLAGS) $^ -o $@
 	
-
-
+server-api: server-api.cpp helper.o candidate.o voter.o
+	$(CXX) $(CPPFLAGS) $^ -o $@
+	
 .PHONY : clean
 clean::
 	rm -fv $(TARGETS) *~ *.o

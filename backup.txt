@@ -1,4 +1,5 @@
+1
+cit595
 0
 CANDIDATE
-bob 0
 VOTER
