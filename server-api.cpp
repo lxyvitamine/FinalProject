@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
     if (0 != pthread_mutex_init(&parseLock, NULL))
         throw "Failed to initialize a mutex";
 
-    //     if (0 != pthread_mutex_init(&methodLock, NULL))
-    //         throw "Failed to initialize a mutex";
+    if (0 != pthread_mutex_init(&methodLock, NULL))
+        throw "Failed to initialize a mutex";
 
     // //     if (0 != pthread_mutex_init(&userCmdsLock, NULL))
     // //         throw "Failed to initialize a mutex";
@@ -189,13 +189,24 @@ int main(int argc, char *argv[])
         // get line
 
         getline(cin, input);
+		 
+		 if (input == "shutdown " + password) {
+			 pthread_mutex_lock(&parseLock);
+			 shutdown(password);
+			 pthread_mutex_unlock(&parseLock);
+			 exit(0);
+// 			 exit(0);
+		 }
 
-        userCmds.push_back(input);
+        userCmds[running_thread] = input;
 
-        pthread_mutex_lock(&parseLock);
-        pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[userCmds.size() - 1]);
+        // pthread_mutex_lock(&parseLock);
+        pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
+
+        pthread_mutex_lock(&methodLock);
         running_thread++;
-        pthread_mutex_unlock(&parseLock);
+        pthread_mutex_unlock(&methodLock);
+        // pthread_mutex_unlock(&parseLock);
     }
 
     return 0;
