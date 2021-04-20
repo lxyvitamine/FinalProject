@@ -61,9 +61,9 @@ void *threadHelper(void *sd)
     }
 
     shutdown(threadSd, SHUT_RDWR);
-
     return NULL;
 }
+
 
 bool isNumber(const string &str)
 {
@@ -71,6 +71,7 @@ bool isNumber(const string &str)
     strtol(str.c_str(), &ptr, 10);
     return *ptr == '\0';
 }
+
 
 void *parseUserinput(void *input)
 {
@@ -314,6 +315,7 @@ int main(int argc, char *argv[])
 
         //create a thread
         //pass isConnect sd as arg
+
         if (pthread_create(&clientThreads[index], NULL, threadHelper, &isConnect) != 0)
         {
             cout << "ERROR: creating threads" << endl;
