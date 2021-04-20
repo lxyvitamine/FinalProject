@@ -9,6 +9,7 @@
 using namespace std;
 
 pthread_mutex_t sdLock;
+char[] feedback;   // feedback = view_result();
 
 void *parseUserinput(void *input);
 
@@ -17,8 +18,6 @@ void *threadHelper(void *socket)
     int newSD = *((int *)socket);
 
     //Do we need while loop?
-    while (true)
-    {
 
         //receive message 1023 chars with \n
         char message[1024];
@@ -28,17 +27,23 @@ void *threadHelper(void *socket)
         {
             cout << "ERROR: receiving data" << endl;
         }
-        else if (rec == 0)
-        {
-            //if client end:
-            shutdown(newSD, SHUT_RDWR);
-            break;
-        }
+//         else if (rec == 0)
+//         {
+//             //if client end:
+//             shutdown(newSD, SHUT_RDWR);
+//             break;
+//         }
 
         //change char to string
         string input(message);
-
-        //if input == shutdown??
+        
+        if(input == "shutdown" + password){
+           
+           shutdown(password);
+           exit(0);
+        }
+        //if input == shutdown + (password)??
+        
 
         //create new thread
         //call parseuserinput
@@ -46,14 +51,19 @@ void *threadHelper(void *socket)
         pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
 
         //how to catch the return value -- store in global variable or use join?
+        //return string ....
+        //
+       
         //send feedback
         //send the message back to clients
         // < sizeof(message) ?
-        if (send(newSD, &message, sizeof(message), 0) < (int)sizeof(message))
+        if (send(newSD, &feedback, sizeof(feedback), 0) < (int)sizeof(feedback))
         {
             cout << "ERROR: sending data" << endl;
         }
-    }
+    
+    //shutdown(newSD, SHUT_RDWR);
+
     return NULL;
 }
 
@@ -190,6 +200,8 @@ void *parseUserinput(void *input)
             //pthread_exit(NULL);
         }
     }
+    
+       
     // 1 argument
     else if (inputs.size() == 2)
     {
