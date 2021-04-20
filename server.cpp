@@ -61,6 +61,7 @@ void *threadHelper(void *argSd)
  	    pthread_detach(pthread_self());
         
         flag = shutdown(sd, SHUT_RDWR);
+        
         //kill(pid, SIGUSR1);
         
     }else{
@@ -360,16 +361,16 @@ int main(int argc, char *argv[])
         clientindex++;
     }
     
-    cout << "I am here " <<endl;
+//     cout << "I am here " <<endl;
 //     for(int i = 0; i < clientindex; i++){
-//         pthread_join(clientThreads[clientindex], NULL);
+//         pthread_detach(clientThreads[clientindex]);
 //     }
     
 //     for(int i = 0; i< running_thread; i++){
 //         pthread_detach(threads[running_thread]);
 //     }
-//     close(sd);
-//     pthread_exit(0);
-
+    
+   pthread_exit(0);
+   //sleep(2);
    return 0;
 }
