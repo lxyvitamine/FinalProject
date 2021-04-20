@@ -69,44 +69,34 @@ int main(int argc, char *argv[])
     }
 
     //keep asking user for input
-    while (1)
-    {
         char input[1024];
         string command = argv[2];
-        int n = command.length();
         // string to char array
         strcpy(input, command.c_str());
         // print command
-        cout << "[C]: ";
-        for (int i = 0; i < n; i++) {
-            cout << input[i];
-        }
-        endl;
-        //string s(input);
+        cout <<"[C]: "<< command << endl;
 
+        //string s(input);
         //send message to server
         if (send(clientSocket, &input, sizeof(input), 0) < (int)sizeof(input))
         {
             cout << "ERROR: sending data" << endl;
-            //continue or break?
-            continue;
         }
 
         // get feedback
         // string feedback;
-
-        int rec = recv(clientSocket, &input, 1024, 0);
-        //cout<< "feedback length is" << sizeof(input) <<endl;
-
+        char feedback[1024];
+        int rec = recv(clientSocket, &feedback, 1024, 0);
+        //cout<< "feedback length is" << sizeof(feedback) <<endl;
+	     
         if (rec == -1)
         {
             cout << "ERROR: receving data" << endl;
         }
         else
         {
-            cout << "REPLIED: " << input << endl;
+            cout << feedback << endl;
         }
-    }
 
     return 0;
 }

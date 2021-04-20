@@ -34,7 +34,7 @@ extern string userCmds[];
 
 extern pthread_mutex_t parseLock;
 extern pthread_mutex_t runningThreadLock;
-// extern pthread_mutex_t userCmdsLock;
+extern pthread_mutex_t userCmdsLock;
 // extern pthread_mutex_t candidatesLock;
 // extern pthread_mutex_t votersLock;
 // extern pthread_mutex_t inputLock;

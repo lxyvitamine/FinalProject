@@ -1,80 +1,105 @@
-#include "helper.h"
+#include "helper2.h"
 #include <netinet/ip.h>
+#include <signal.h>
 // #include <sys/socket.h>
 
 using namespace std;
 
 pthread_mutex_t sdLock;
-MAX_MESSAGE = 1024;
+
+const int MAX_MESSAGE = 1024;
 char sendToClient[MAX_MESSAGE];
 string errorMsg = "ERROR";
+int sd;
+pid_t pid;
+int flag = -2;
 
-// void *parseUserinput(void *input);
+pthread_t clientThreads[9999];
+int clientindex = 0;
 
-void *threadHelper(void *sd)
+//signal handler for SIGINT
+ void handleSigusr1(int signo){
+
+     //exit(0);
+ }
+
+void *parseUserinput(void *input);
+
+void *threadHelper(void *argSd)
 {
-    int threadSd = *(int *)sd;
+	//pthread_mutex_lock(&sdLock);
+    int threadSd = *(int *)argSd;
+	//pthread_mutex_unlock(&sdLock);
 
     //Do we need while loop?
-
     //receive message 1023 chars with \n
     char cmdFromClient[MAX_MESSAGE];
     int numOfBytesRcvd = recv(threadSd, &cmdFromClient, sizeof(char) * MAX_MESSAGE, 0);
+	//cout<< "Server receive" << cmdFromClient <<endl;
 
     if (numOfBytesRcvd == -1)
     {
         cout << "ERROR: receiving data" << endl;
     }
-    //         else if (rec == 0)
-    //         {
-    //             //if client end:
-    //             shutdown(newSD, SHUT_RDWR);
-    //             break;
-    //         }
 
     // change char to string
     string input(cmdFromClient);
 
     if (input == "shutdown " + password)
     {
-        // pthread_mutex_lock(&parseLock);
+        pthread_mutex_lock(&userCmdsLock);
         shutdown(password);
-        // pthread_mutex_unlock(&parseLock);
-        exit(0);
-    }
-
+        pthread_mutex_unlock(&userCmdsLock);
+		char shutdownOK[MAX_MESSAGE]= "[R]: OK";
+        
+		if ((int)send(threadSd, &shutdownOK, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE))
+        {
+        cout << "ERROR: sending data" << endl;
+        }
+		
+ 		close(threadSd);
+ 	    pthread_detach(pthread_self());
+        
+        flag = shutdown(sd, SHUT_RDWR);
+        //kill(pid, SIGUSR1);
+        
+    }else{
+        
     // create new thread
     // call parseuserinput
     userCmds[running_thread] = input;
     pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
 
-    // how to catch the return value -- store in global variable or use join?
-    // return string ....
-    //
 
     // send feedback
-    // send the message back to clients
-    // < sizeof(message) ?
-    if (send(threadSd, &sendToClient, sizeof(char) * strlen(sendToClient), 0) < sizeof(char) * strlen(sendToClient))
+	//thread join
+	pthread_join(threads[running_thread], NULL);
+	
+	//pthread_mutex_lock(&runningThreadLock);
+	running_thread++;
+	//pthread_mutex_unlock(&runningThreadLock);
+	
+	pthread_mutex_lock(&parseLock);
+    if ((int)send(threadSd, &sendToClient, 1024, 0) < (int)(sizeof(char) * MAX_MESSAGE))
     {
         cout << "ERROR: sending data" << endl;
     }
+	memset(sendToClient, 0, sizeof(sendToClient));
+	pthread_mutex_unlock(&parseLock);
+	
 
-    shutdown(threadSd, SHUT_RDWR);
+    close(threadSd);
+    pthread_detach(pthread_self());
+    //pthread_exit(NULL);
+    }
+    
     return NULL;
-}
-
-
-bool isNumber(const string &str)
-{
-    char *ptr;
-    strtol(str.c_str(), &ptr, 10);
-    return *ptr == '\0';
 }
 
 
 void *parseUserinput(void *input)
 {
+	pthread_mutex_lock(&userCmdsLock);
     string userinput = *(static_cast<string *>(input));
     vector<string> inputs = parseCmd(userinput, " ");
 
@@ -223,13 +248,17 @@ void *parseUserinput(void *input)
         strcpy(sendToClient, errorMsg.c_str());
         pthread_mutex_unlock(&parseLock);
     }
-    //pthread_exit(NULL);
 
+	pthread_mutex_unlock(&userCmdsLock);
     return NULL;
 }
 
 int main(int argc, char *argv[])
 {
+	
+	pid = getpid();
+	signal(SIGUSR1, handleSigusr1); 
+     
     //default to 10000
     unsigned short int port = 10000;
     // 1. parse command
@@ -268,7 +297,7 @@ int main(int argc, char *argv[])
     st.sin_port = port;
 
     //set-up socket
-    int sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sd == -1)
     {
         cout << "ERROR: create server socket" << endl;
@@ -296,33 +325,51 @@ int main(int argc, char *argv[])
     //wait for clients in an infinite loop
 
     //create an array for threads
-    pthread_t clientThreads[9999];
-    int index = 0;
+//     pthread_t clientThreads[9999];
+//     int index = 0;
 
-    if (0 != pthread_mutex_init(&sdLock, NULL))
-        throw "ERROR: Failed to initialize a mutex";
-
+    if (0 != pthread_mutex_init(&sdLock, NULL)){
+        throw "ERROR: Failed to initialize a mutex";}
+	
+	if (0 != pthread_mutex_init(&runningThreadLock, NULL)){
+        throw "Failed to initialize a mutex";}
+	
+	if (0 != pthread_mutex_init(&userCmdsLock, NULL)){
+        throw "Failed to initialize a mutex";}
+	
     while (1)
     {
-        int isConnect = accept(sd, NULL, NULL);
-        //cout<< "accept sd is "<<isConnect <<endl;
-
-        if (isConnect < 0)
-        {
-            cout << "ERROR: connection" << endl;
+        if(flag == 0) break;
+        pthread_mutex_lock(&sdLock);
+		int isConnect = accept(sd, NULL, NULL);
+		pthread_mutex_unlock(&sdLock);
+        
+         if(isConnect < 0){
+            //cout << "ERROR: connection" << endl;
             continue;
         }
 
         //create a thread
         //pass isConnect sd as arg
-
-        if (pthread_create(&clientThreads[index], NULL, threadHelper, &isConnect) != 0)
+         
+        if (pthread_create(&clientThreads[clientindex], NULL, threadHelper, &isConnect) != 0)
         {
             cout << "ERROR: creating threads" << endl;
         }
 
-        index++;
+        clientindex++;
     }
+    
+    cout << "I am here " <<endl;
+//     for(int i = 0; i < clientindex; i++){
+//         pthread_join(clientThreads[clientindex], NULL);
+//     }
+    
+//     for(int i = 0; i< running_thread; i++){
+//         pthread_detach(threads[running_thread]);
+//     }
+//     close(sd);
+//     pthread_exit(0);
 
-    return 0;
+   return 0;
 }

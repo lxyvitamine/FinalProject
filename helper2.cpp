@@ -21,7 +21,7 @@ string userCmds[MAX_LIMIT];
 
 pthread_mutex_t parseLock;
 pthread_mutex_t runningThreadLock;
-// pthread_mutex_t userCmdsLock;
+pthread_mutex_t userCmdsLock;
 // pthread_mutex_t candidatesLock;
 // pthread_mutex_t votersLock;
 // pthread_mutex_t inputLock;
@@ -42,12 +42,12 @@ string view_result_helper()
                 numOfWinners++;
             }
             
-            feedback += (*it)->getName() + ": " + to_string((*it)->getVotes()) + "\n";
+            feedback = feedback + (*it)->getName() + ": " + to_string((*it)->getVotes()) + "\n";
         }
 
         if (highest_vote == 0)
         {
-            feedback += "No Winner";
+            feedback = feedback + "No Winner";
             return feedback;
         }
         else
@@ -55,11 +55,11 @@ string view_result_helper()
             int commaCount = 0;
             if (numOfWinners == 1)
             {
-                feedback += "Winner: ";
+                feedback = feedback + "Winner: ";
             }
             else
             {
-                feedback += "Draw: ";
+                feedback = feedback + "Draw: ";
             }
             for (auto it = candidates.begin(); it < candidates.end(); it++)
             {
@@ -68,11 +68,11 @@ string view_result_helper()
                     commaCount++;
                     if (commaCount == numOfWinners)
                     {
-                        feedback += (*it)->getName() +"\n";
+                        feedback = feedback + (*it)->getName() +"\n";
                        // cout << (*it)->getName() << endl;
                     }
                     else
-                    {   feedback += (*it)->getName() + ", " + "\n";
+                    {   feedback = feedback + (*it)->getName() + ", " + "\n";
                         //cout << (*it)->getName() << ", ";
                     }
                 }
@@ -175,12 +175,12 @@ string end_election(string cmdpassword)
     isOngoing = false;
 
     // end threads
-    pthread_mutex_lock(&runningThreadLock);
-    for (int i = 0; i < running_thread; i++)
-    {
-        pthread_detach(threads[i]);
-    }
-    pthread_mutex_unlock(&runningThreadLock);
+//     pthread_mutex_lock(&runningThreadLock);
+//     for (int i = 0; i < running_thread; i++)
+//     {
+//         pthread_detach(threads[i]);
+//     }
+//     pthread_mutex_unlock(&runningThreadLock);
 
     feedback = view_result_helper();
 
@@ -486,7 +486,13 @@ string list_candidtates()
         // cout << "[R]: ";
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
-            res = res + (*it)->getName();
+            if(it != candidates.end() - 1){
+				res = res + (*it)->getName() +"\n";
+			}else{
+				res = res + (*it)->getName();
+			}
+
+			
             //cout << (*it)->getName() << endl;
         }
         return res;
