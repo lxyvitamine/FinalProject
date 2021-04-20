@@ -41,7 +41,7 @@ extern pthread_mutex_t runningThreadLock;
 // extern pthread_mutex_t magicNumLock;
 
 // helper function
-void view_result_helper();
+string view_result_helper();
 bool isNumber(const string &str);
 int generateUniqueMagicNumber();
 
@@ -49,10 +49,10 @@ int generateUniqueMagicNumber();
 vector<string> parseCmd(const string &raw_line, const string &delim);
 
 //ADMIN
-void start_election(string cmdpassword);
-void end_election(string cmdpassword);
-void add_candidate(string cmdpassword, string candiName);
-void shutdown(string cmdpassword);
+string start_election(string cmdpassword);
+string end_election(string cmdpassword);
+string add_candidate(string cmdpassword, string candiName);
+string shutdown(string cmdpassword);
 
 // VOTER //
 void add_voter(int voterId);
@@ -62,8 +62,8 @@ void check_voter_status(int voterId, int magicNum);
 
 // ANY USER //
 void list_candidtates();
-void vote_count(string name);
-void view_result();
+string vote_count(string name);
+string view_result();
 
 // optional argument: -r
 void recover();
