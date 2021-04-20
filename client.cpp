@@ -77,11 +77,11 @@ int main(int argc, char *argv[])
         // string to char array
         strcpy(input, command.c_str());
         // print command
-        cout << "command is: ";
+        cout << "[C]: ";
         for (int i = 0; i < n; i++) {
             cout << input[i];
         }
-        
+        endl;
         //string s(input);
 
         //send message to server
