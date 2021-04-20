@@ -8,10 +8,10 @@ $(OBJS_CPP): $(SRC_CPP_FILES)
 	
 all: $(TARGETS)
 
-helper: helper.cpp candidate.o voter.o
+helper2: helper2.cpp candidate.o voter.o
 	$(CXX) $(CPPFLAGS) $^ -o $@
 	
-server: server.cpp helper.o candidate.o voter.o
+server: server.cpp helper2.o candidate.o voter.o
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
 client: client.cpp

@@ -1,4 +1,4 @@
-#include "helper.h"
+#include "helper2.h"
 
 using namespace std;
 
@@ -28,10 +28,10 @@ pthread_mutex_t runningThreadLock;
 // pthread_mutex_t magicNumLock;
 
 // helper to view result of election
-void view_result_helper()
+string view_result_helper()
 {
+    string feedback;
     int numOfWinners = 0;
-    cout << "[R]: ";
 
     if (!isOngoing)
     {
@@ -41,23 +41,25 @@ void view_result_helper()
             {
                 numOfWinners++;
             }
-            cout << (*it)->getName() << ": " << (*it)->getVotes() << endl;
+            
+            feedback += (*it)->getName() + ": " + to_string((*it)->getVotes()) + "\n";
         }
 
         if (highest_vote == 0)
         {
-            cout << "No Winner" << endl;
+            feedback += "No Winner";
+            return feedback;
         }
         else
         {
             int commaCount = 0;
             if (numOfWinners == 1)
             {
-                cout << "Winner: ";
+                feedback += "Winner: ";
             }
             else
             {
-                cout << "Draw: ";
+                feedback += "Draw: ";
             }
             for (auto it = candidates.begin(); it < candidates.end(); it++)
             {
@@ -66,11 +68,12 @@ void view_result_helper()
                     commaCount++;
                     if (commaCount == numOfWinners)
                     {
-                        cout << (*it)->getName() << endl;
+                        feedback += (*it)->getName() +"\n";
+                       // cout << (*it)->getName() << endl;
                     }
                     else
-                    {
-                        cout << (*it)->getName() << ", ";
+                    {   feedback += (*it)->getName() + ", " + "\n";
+                        //cout << (*it)->getName() << ", ";
                     }
                 }
             }
@@ -78,10 +81,11 @@ void view_result_helper()
     }
     else
     {
-        cout << "ERROR" << endl;
+        feedback = "[R]:ERROR";
+        return feedback;
     }
 
-    return;
+    return feedback;
 }
 
 bool isNumber(const string &str)
@@ -126,8 +130,9 @@ vector<string> parseCmd(const string &raw_line, const string &delim)
 }
 
 // ADMIN //
-void start_election(string cmdpassword)
+string start_election(string cmdpassword)
 {
+    string feedback;
     // TODO
     // clean the backup.txt file
     if (!isOngoing)
@@ -137,36 +142,34 @@ void start_election(string cmdpassword)
         ofs.close();
     }
 
-    cout << "[C]: start_election " << cmdpassword << endl;
-
     if (cmdpassword != password)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        feedback = "[R]: ERROR";
+        return feedback;
     }
     else
     {
         if (isOngoing)
         {
-            cout << "[R]: EXISTS" << endl;
-            return;
+            feedback = "[R]: EXISTS";
+            return feedback;
         }
 
         isOngoing = true;
-        cout << "[R]: OK" << endl;
+        feedback = "[R]: OK";
+        return feedback;
     }
-
-    return;
+    
+    return NULL;
 }
 
-void end_election(string cmdpassword)
+string end_election(string cmdpassword)
 {
-    cout << "[C]: end_election " << cmdpassword << endl;
-
+    string feedback;
     if (!isOngoing || cmdpassword != password)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        feedback = "[R]: ERROR";
+        return feedback;
     }
 
     isOngoing = false;
@@ -179,20 +182,21 @@ void end_election(string cmdpassword)
     }
     pthread_mutex_unlock(&runningThreadLock);
 
-    view_result_helper();
+    feedback = view_result_helper();
 
-    return;
+    return feedback;
 }
 
-void add_candidate(string cmdpassword, string candiName)
+string add_candidate(string cmdpassword, string candiName)
 {
-    cout << "[C]: add_candidate " << cmdpassword << " " << candiName << endl;
+     string feedback;
+    //cout << "[C]: add_candidate " << cmdpassword << " " << candiName << endl;
 
     // check isOngoing flag and password
     if (cmdpassword != password || !isOngoing)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        feedback = "[R]: ERROR";
+        return feedback;
     }
 
     // check if candidate already exists
@@ -200,8 +204,8 @@ void add_candidate(string cmdpassword, string candiName)
     {
         if (candidates[i]->getName() == candiName)
         {
-            cout << "[R]: EXISTS" << endl;
-            return;
+            feedback = "[R]: EXISTS";
+            return feedback;
         }
     }
 
@@ -209,20 +213,19 @@ void add_candidate(string cmdpassword, string candiName)
     Candidate *c = new Candidate(candiName, 0);
     candidates.push_back(c);
 
-    cout << "[R]: OK" << endl;
+   feedback = "[R]: OK";
 
-    return;
+    return feedback;
 }
 
-void shutdown(string cmdpassword)
+string shutdown(string cmdpassword)
 {
-    cout << "[C]: shutdown " << cmdpassword << endl;
-
+     string feedback;
     // if password doesn't match, print error
     if (password != cmdpassword)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        feedback = "[R]: ERROR";
+        return feedback;
     }
 
     // end thread
@@ -286,9 +289,9 @@ void shutdown(string cmdpassword)
         delete voters[i];
     }
 
-    cout << "[R]: OK" << endl;
+    feedback = "[R]: OK";
 
-    return;
+    return feedback;
 }
 
 // VOTER //
@@ -494,10 +497,10 @@ string list_candidtates()
     }
 }
 
-void vote_count(string name)
+string vote_count(string name)
 {
-    cout << "[C]: vote_count " << name << endl;
-    cout << "[R]: ";
+    string feedback;
+    feedback += "[R]: ";
 
     if (isOngoing)
     {
@@ -505,25 +508,22 @@ void vote_count(string name)
         {
             if ((*it)->getName() == name)
             {
-                cout << (*it)->getVotes() << endl;
-                return;
+                feedback += (*it)->getVotes() + "\n";
+                return feedback;
             }
         }
-        cout << "-1" << endl;
-        return;
+        
+        return "-1";
     }
     else
     {
-        cout << "-1" << endl;
-        return;
+        return "-1";
     }
 }
 
-void view_result()
+string view_result()
 {
-    cout << "[C]: view_result" << endl;
-    view_result_helper();
-    return;
+    return view_result_helper();
 }
 
 // optional argument: -r
