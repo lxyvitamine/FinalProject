@@ -7,15 +7,16 @@ $(OBJS_CPP): $(SRC_CPP_FILES)
 	$(CXX) $(CPPFLAGS) $^ -c
 	
 all: $(TARGETS)
+
+helper: helper.cpp candidate.o voter.o
+	$(CXX) $(CPPFLAGS) $^ -o $@
 	
-server: server.cpp
+server: server.cpp helper.o candidate.o voter.o
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
 client: client.cpp
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
-helper: helper.cpp candidate.o voter.o
-	$(CXX) $(CPPFLAGS) $^ -o $@
 	
 server-api: server-api.cpp helper.o candidate.o voter.o
 	$(CXX) $(CPPFLAGS) $^ -o $@
