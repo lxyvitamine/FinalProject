@@ -292,14 +292,11 @@ void shutdown(string cmdpassword)
 }
 
 // VOTER //
-void add_voter(int voterId)
+string add_voter(int voterId)
 {
-    cout << "[C]: add_voter " << voterId << endl;
-
     if (!isOngoing || voterId > 9999 || voterId < 1000)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        return "[R]: ERROR";
     }
 
     // check exists
@@ -307,8 +304,7 @@ void add_voter(int voterId)
     {
         if (voters[i]->getId() == voterId)
         {
-            cout << "[R]: EXISTS" << endl;
-            return;
+            return "[R]: EXISTS";
         }
     }
 
@@ -316,9 +312,7 @@ void add_voter(int voterId)
     Voter *v = new Voter(voterId, 0);
     voters.push_back(v);
 
-    cout << "[R]: OK" << endl;
-
-    return;
+    return "[R]: OK";
 }
 
 // helper funtion to generate unique magic number
@@ -336,14 +330,11 @@ int generateUniqueMagicNumber()
     return num;
 }
 
-void vote_for(string name, int voterId)
+string vote_for(string name, int voterId)
 {
-    cout << "[C]: vote_for " << name << " " << voterId << endl;
-
     if (!isOngoing || voterId > 9999 || voterId < 1000)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        return "[R]: ERROR";
     }
 
     // check if voter exists, voterId innvalid: NOTAVOTER
@@ -359,8 +350,7 @@ void vote_for(string name, int voterId)
 
     if (!canVote)
     {
-        cout << "[R]: NOTAVOTER" << endl;
-        return;
+        return "[R]: NOTAVOTER";
     }
 
     // check if voter already voted, already voted: ALREADYVOTED
@@ -370,8 +360,7 @@ void vote_for(string name, int voterId)
         {
             if (voters[i]->getMagicNum() != 0)
             { // magic number != 0, voted
-                cout << "[R]: ALREADYVOTED" << endl;
-                return;
+                return "[R]: ALREADYVOTED";
             }
         }
     }
@@ -379,12 +368,14 @@ void vote_for(string name, int voterId)
     // check if candidate exists
     // candidate exists in system: EXISTS
     canVote = false;
-
+    // returned string
+    string res;
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         if (candidates[i]->getName() == name)
         {
-            cout << "[R]: EXISTS" << endl;
+            //cout << "[R]: EXISTS" << endl;
+            res = "[R]: EXISTS";
             // increment vote count by 1
             candidates[i]->addVotes();
             // update highest_vote
@@ -401,7 +392,8 @@ void vote_for(string name, int voterId)
         candidates.push_back(c);
         // update highest_vote
         highest_vote = max(highest_vote, c->getVotes());
-        cout << "[R]: NEW" << endl;
+        //cout << "[R]: NEW" << endl;
+        res = "[R]: NEW";
     }
 
     // finish vote and return magic number
@@ -417,30 +409,27 @@ void vote_for(string name, int voterId)
         if (voters[i]->getId() == voterId)
         {
             voters[i]->setMagicNum(magicNumber);
-            cout << magicNumber << endl;
+            res = res + "\n" + to_string(magicNumber);
+            //cout << magicNumber << endl;
             break;
         }
     }
 
-    return;
+    return res;
 }
 
-void check_registration_status(int voterId)
+string check_registration_status(int voterId)
 {
-    cout << "[C]: check_registration_status " << voterId << endl;
-
     // check isOngoing
     if (!isOngoing)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        return "[R]: ERROR";
     }
 
     // id out of range
     if (voterId > 9999 || voterId < 1000)
     {
-        cout << "[R]: INVALID" << endl;
-        return;
+        return "[R]: INVALID";
     }
 
     // check if voter exists
@@ -448,25 +437,19 @@ void check_registration_status(int voterId)
     {
         if (voters[i]->getId() == voterId)
         { // voter exist
-            cout << "[R]: EXISTS" << endl;
-            return;
+            return "[R]: EXISTS";
         }
     }
 
     // voter not exist
-    cout << "[R]: UNREGISTERED" << endl;
-
-    return;
+    return "[R]: UNREGISTERED";
 }
 
-void check_voter_status(int voterId, int magicNum)
+string check_voter_status(int voterId, int magicNum)
 {
-    cout << "[C]: check_voter_status " << voterId << " " << magicNum << endl;
-
     if (!isOngoing || voterId > 9999 || voterId < 1000)
     {
-        cout << "[R]: ERROR" << endl;
-        return;
+        return "[R]: ERROR";
     }
 
     for (int i = 0; i < (int)voters.size(); i++)
@@ -476,40 +459,38 @@ void check_voter_status(int voterId, int magicNum)
             // wrong magicNum, print “UNAUTHORIZED”
             if (voters[i]->getMagicNum() != magicNum || magicNum == 0)
             {
-                cout << "[R]: UNAUTHORIZED" << endl;
-                return;
+                return "[R]: UNAUTHORIZED";
             }
             else
             { // “ALREADYVOTED” if voter has voted
-                cout << "[R]: ALREADYVOTED" << endl;
-                return;
+                return "[R]: ALREADYVOTED";
             }
         }
     }
 
     // voter not in voters
-    cout << "[R]: CHECKSTATUS" << endl;
 
-    return;
+    return "[R]: CHECKSTATUS";
 }
 
 // ANY USER //
-void list_candidtates()
+string list_candidtates()
 {
-    cout << "[C]: list_candidtates" << endl;
-
+    // cout << "[C]: list_candidtates" << endl;
+    string res = "[R]: ";
     if (isOngoing)
     {
-        cout << "[R]: ";
-
+        // cout << "[R]: ";
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
-            cout << (*it)->getName() << endl;
+            res = res + (*it)->getName();
+            //cout << (*it)->getName() << endl;
         }
+        return res;
     }
     else
     {
-        cout << "[R]: " << endl;
+        return res;
     }
 }
 

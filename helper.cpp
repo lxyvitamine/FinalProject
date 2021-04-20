@@ -293,7 +293,7 @@ void shutdown(string cmdpassword)
 
 // VOTER //
 void add_voter(int voterId)
-{
+{   
     cout << "[C]: add_voter " << voterId << endl;
 
     if (!isOngoing || voterId > 9999 || voterId < 1000)
