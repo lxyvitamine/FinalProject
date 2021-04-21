@@ -22,7 +22,7 @@ string userCmds[MAX_LIMIT];
 pthread_mutex_t parseLock;
 pthread_mutex_t runningThreadLock;
 pthread_mutex_t userCmdsLock;
-// pthread_mutex_t candidatesLock;
+pthread_mutex_t candidatesLock;
 // pthread_mutex_t votersLock;
 // pthread_mutex_t inputLock;
 // pthread_mutex_t magicNumLock;
@@ -208,6 +208,7 @@ string add_candidate(string cmdpassword, string candiName)
     }
 
     // check if candidate already exists
+    pthread_mutex_lock(&candidatesLock);
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         if (candidates[i]->getName() == candiName)
@@ -220,7 +221,7 @@ string add_candidate(string cmdpassword, string candiName)
     // if not, create new candidate
     Candidate *c = new Candidate(candiName, 0);
     candidates.push_back(c);
-
+    pthread_mutex_unlock(&candidatesLock);
     feedback = "[R]: OK";
 
     return feedback;
@@ -237,13 +238,13 @@ string shutdown(string cmdpassword)
     }
 
     // end thread
-    if (isOngoing)
-    {
-        for (int i = 0; i < running_thread; i++)
-        {
-            pthread_detach(threads[i]);
-        }
-    }
+//     if (isOngoing)
+//     {
+//         for (int i = 0; i < running_thread; i++)
+//         {
+//             pthread_detach(threads[i]);
+//         }
+//     }
 
     // write into backup.txt
     ofstream myfile("backup.txt");
@@ -268,12 +269,13 @@ string shutdown(string cmdpassword)
 
         // write candidate
         myfile << "CANDIDATE" << endl;
-
+        pthread_mutex_lock(&candidatesLock);
         for (int i = 0; i < (int)candidates.size(); i++)
         {
             string candidateInfo = candidates[i]->getName() + " " + to_string(candidates[i]->getVotes());
             myfile << candidateInfo << endl;
         }
+        pthread_mutex_unlock(&candidatesLock);
 
         // write voters
         myfile << "VOTER" << endl;
@@ -287,11 +289,12 @@ string shutdown(string cmdpassword)
     }
 
     // delete heap memory
+    pthread_mutex_lock(&candidatesLock);
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         delete candidates[i];
     }
-
+    pthread_mutex_unlock(&candidatesLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         delete voters[i];

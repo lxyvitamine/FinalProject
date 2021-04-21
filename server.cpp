@@ -16,6 +16,8 @@ int flagShutdown = -2;
 
 pthread_t clientThreads[9999];
 int clientIndex = 0;
+pthread_mutex_t mainLock;
+pthread_mutex_t flagLock;
 
 //signal handler for SIGINT
 void handleSigusr1(int signo)
@@ -27,11 +29,10 @@ void *parseUserinput(void *input);
 
 void *threadHelper(void *argSd)
 {
-    //pthread_mutex_lock(&sdLock);
+    pthread_mutex_lock(&sdLock);
     int threadSd = *(int *)argSd;
-    //pthread_mutex_unlock(&sdLock);
-
-    //Do we need while loop?
+    pthread_mutex_unlock(&sdLock);
+    // Do we need while loop?
     //receive message 1023 chars with \n
     char cmdFromClient[MAX_MESSAGE];
 
@@ -45,6 +46,10 @@ void *threadHelper(void *argSd)
 
     if (input == "shutdown " + password)
     {
+        pthread_mutex_lock(&flagLock);
+        flagShutdown = 1;
+        pthread_mutex_unlock(&flagLock);
+        
         pthread_mutex_lock(&userCmdsLock);
         shutdown(password);
         pthread_mutex_unlock(&userCmdsLock);
@@ -55,27 +60,32 @@ void *threadHelper(void *argSd)
         {
             cout << "ERROR: sending data" << endl;
         }
-
+        
+        //pthread_mutex_lock(&sdLock);
+        shutdown(sd, SHUT_RDWR);
+        //pthread_mutex_unlock(&sdLock);
+        
         close(threadSd);
-        pthread_detach(pthread_self());
-
-        flagShutdown = shutdown(sd, SHUT_RDWR);
-
+        //pthread_detach(pthread_self());
+        
+        
         //kill(pid, SIGUSR1);
     }
     else
     {
+        
         // create new thread
         // call parseuserinput
-        userCmds[running_thread] = input;
-        pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
-
+        //userCmds[running_thread] = input;
+        //pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
+        //pthread_t tid;
+        //pthread_create(&tid, NULL, parseUserinput, &input);
         // send feedback
         //thread join
-        pthread_join(threads[running_thread], NULL);
-
+        //pthread_join(tid, NULL);
+        parseUserinput(&input);
         //pthread_mutex_lock(&runningThreadLock);
-        running_thread++;
+        //running_thread++;
         //pthread_mutex_unlock(&runningThreadLock);
 
         pthread_mutex_lock(&parseLock);
@@ -87,10 +97,11 @@ void *threadHelper(void *argSd)
         pthread_mutex_unlock(&parseLock);
 
         close(threadSd);
-        pthread_detach(pthread_self());
+        //pthread_detach(pthread_self());
         //pthread_exit(NULL);
     }
-
+    pthread_detach(pthread_self());
+    
     return NULL;
 }
 
@@ -155,6 +166,8 @@ void *parseUserinput(void *input)
                 pthread_mutex_lock(&parseLock);
                 strcpy(sendToClient, errorMsg.c_str());
                 pthread_mutex_unlock(&parseLock);
+                
+                pthread_mutex_unlock(&userCmdsLock);
                 return NULL;
             }
             pthread_mutex_lock(&parseLock);
@@ -170,6 +183,8 @@ void *parseUserinput(void *input)
                 pthread_mutex_lock(&parseLock);
                 strcpy(sendToClient, errorMsg.c_str());
                 pthread_mutex_unlock(&parseLock);
+                
+                pthread_mutex_unlock(&userCmdsLock);
                 return NULL;
             }
             pthread_mutex_lock(&parseLock);
@@ -211,6 +226,8 @@ void *parseUserinput(void *input)
                 pthread_mutex_lock(&parseLock);
                 strcpy(sendToClient, errorMsg.c_str());
                 pthread_mutex_unlock(&parseLock);
+                
+                pthread_mutex_unlock(&userCmdsLock);
                 return NULL;
             }
             pthread_mutex_lock(&parseLock);
@@ -225,6 +242,8 @@ void *parseUserinput(void *input)
                 pthread_mutex_lock(&parseLock);
                 strcpy(sendToClient, errorMsg.c_str());
                 pthread_mutex_unlock(&parseLock);
+                
+                pthread_mutex_unlock(&userCmdsLock);
                 return NULL;
             }
             pthread_mutex_lock(&parseLock);
@@ -340,31 +359,54 @@ int main(int argc, char *argv[])
     {
         throw "Failed to initialize a mutex";
     }
-
-    while (1)
+    
+    if (0 != pthread_mutex_init(&parseLock, NULL))
     {
-        if (flagShutdown == 0)
+        throw "Failed to initialize a mutex";
+    }
+    
+    if (0 != pthread_mutex_init(&candidatesLock, NULL))
+    {
+        throw "Failed to initialize a mutex";
+    }
+    
+    if (0 != pthread_mutex_init(&mainLock, NULL))
+    {
+        throw "Failed to initialize a mutex";
+    }
+    
+    while (1) {
+        pthread_mutex_lock(&flagLock);
+        if (flagShutdown == 1){
+            pthread_mutex_unlock(&flagLock);
             break;
-        pthread_mutex_lock(&sdLock);
+        }
+        pthread_mutex_unlock(&flagLock);
+        
+        
+        //pthread_mutex_lock(&sdLock);
         int isConnect = accept(sd, NULL, NULL);
-        pthread_mutex_unlock(&sdLock);
+        //pthread_mutex_unlock(&sdLock);
 
         if (isConnect == -1)
         {
             //cout << "ERROR: connection" << endl;
+            //pthread_mutex_unlock(&sdLock);
             continue;
         }
 
         //create a thread
         //pass isConnect sd as arg
-
+        //pthread_mutex_lock(&mainLock);
         if (pthread_create(&clientThreads[clientIndex], NULL, threadHelper, &isConnect) != 0)
         {
             cout << "ERROR: creating threads for clients" << endl;
         }
-
         clientIndex++;
+        
+        //pthread_mutex_unlock(&mainLock);
     }
+    
 
     //     cout << "I am here " <<endl;
     //     for(int i = 0; i < clientIndex; i++){
