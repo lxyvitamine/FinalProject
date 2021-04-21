@@ -14,7 +14,7 @@ int sd;
 pid_t pid;
 int flagShutdown = -2;
 
-pthread_t clientThreads[9999];
+vector<pthread_t> clientThreads;
 int clientIndex = 0;
 pthread_mutex_t mainLock;
 pthread_mutex_t flagLock;
@@ -27,13 +27,13 @@ void handleSigusr1(int signo)
 
 void *parseUserinput(void *input);
 
-void *threadHelper(void *argSd)
-{
-    pthread_mutex_lock(&sdLock);
+void *threadHelper(void *argSd) {
+    
     int threadSd = *(int *)argSd;
-    pthread_mutex_unlock(&sdLock);
+    delete (int *)argSd;
+    
     // Do we need while loop?
-    //receive message 1023 chars with \n
+    // receive message 1023 chars with \n
     char cmdFromClient[MAX_MESSAGE];
 
     if (recv(threadSd, &cmdFromClient, sizeof(char) * MAX_MESSAGE, 0) == -1)
@@ -44,8 +44,7 @@ void *threadHelper(void *argSd)
     // change char to string
     string input(cmdFromClient);
 
-    if (input == "shutdown " + password)
-    {
+    if (input.compare("shutdown " + password) == 0){ // equal
         pthread_mutex_lock(&flagLock);
         flagShutdown = 1;
         pthread_mutex_unlock(&flagLock);
@@ -67,12 +66,8 @@ void *threadHelper(void *argSd)
         
         close(threadSd);
         //pthread_detach(pthread_self());
-        
-        
         //kill(pid, SIGUSR1);
-    }
-    else
-    {
+    } else {
         
         // create new thread
         // call parseuserinput
@@ -100,8 +95,8 @@ void *threadHelper(void *argSd)
         //pthread_detach(pthread_self());
         //pthread_exit(NULL);
     }
-    pthread_detach(pthread_self());
-    
+    // pthread_detach(pthread_self());
+    // pthread_exit(0);
     return NULL;
 }
 
@@ -321,6 +316,12 @@ int main(int argc, char *argv[])
         shutdown(sd, SHUT_RDWR);
         return -1;
     }
+    
+    int reuse_address = 1;
+    
+    if ((setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuse_address, sizeof(int))) == -1) {
+		cerr << "set socket reuseaddress error" << endl;
+	}
 
     //bind
     if (bind(sd, (const struct sockaddr *)&st, sizeof(st)) == -1)
@@ -394,30 +395,26 @@ int main(int argc, char *argv[])
             //pthread_mutex_unlock(&sdLock);
             continue;
         }
-
+        
+        int* temp =  new int();
+        *temp = isConnect;
+        
         //create a thread
         //pass isConnect sd as arg
         //pthread_mutex_lock(&mainLock);
-        if (pthread_create(&clientThreads[clientIndex], NULL, threadHelper, &isConnect) != 0)
-        {
+        clientThreads.push_back(1);
+        if (pthread_create(&clientThreads.back(), NULL, threadHelper, temp) != 0) {
             cout << "ERROR: creating threads for clients" << endl;
         }
-        clientIndex++;
-        
+        //clientIndex++;
         //pthread_mutex_unlock(&mainLock);
     }
+
+    // pthread_exit(0);
+    // sleep(2);
+    for (auto pid: clientThreads) {
+        pthread_join(pid, NULL);
+    }
     
-
-    //     cout << "I am here " <<endl;
-    //     for(int i = 0; i < clientIndex; i++){
-    //         pthread_detach(clientThreads[clientIndex]);
-    //     }
-
-    //     for(int i = 0; i< running_thread; i++){
-    //         pthread_detach(threads[running_thread]);
-    //     }
-
-    pthread_exit(0);
-    //sleep(2);
     return 0;
 }

@@ -214,6 +214,7 @@ string add_candidate(string cmdpassword, string candiName)
         if (candidates[i]->getName() == candiName)
         {
             feedback = "[R]: EXISTS";
+            pthread_mutex_unlock(&candidatesLock);
             return feedback;
         }
     }
@@ -223,7 +224,6 @@ string add_candidate(string cmdpassword, string candiName)
     candidates.push_back(c);
     pthread_mutex_unlock(&candidatesLock);
     feedback = "[R]: OK";
-
     return feedback;
 }
 
@@ -295,6 +295,8 @@ string shutdown(string cmdpassword)
         delete candidates[i];
     }
     pthread_mutex_unlock(&candidatesLock);
+    
+    
     for (int i = 0; i < (int)voters.size(); i++)
     {
         delete voters[i];
@@ -312,7 +314,7 @@ string add_voter(int voterId)
     {
         return "[R]: ERROR";
     }
-
+    
     // check exists
     for (int i = 0; i < (int)voters.size(); i++)
     {
