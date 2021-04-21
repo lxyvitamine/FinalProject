@@ -1,13 +1,5 @@
 #include "helper2.h"
-#include <iostream>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <string>
-#include <cstring>
-#include <arpa/inet.h>
 #include <netinet/ip.h>
-#include <sys/socket.h>
 
 using namespace std;
 
