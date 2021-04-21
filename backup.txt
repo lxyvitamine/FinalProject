@@ -1,5 +1,10 @@
-0
+1
 cit595
-0
+1
 CANDIDATE
+bob 0
+sally 0
+bobby 1
 VOTER
+1000 33625
+1001 0

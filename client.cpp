@@ -1,46 +1,32 @@
+#include "helper2.h"
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string>
-#include <arpa/inet.h>
 #include <cstring>
-
+#include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
+
 using namespace std;
 
-//check if a given string is number
-bool isNumber(const std::string &str)
-{
-    char *ptr;
-    strtol(str.c_str(), &ptr, 10);
-    return *ptr == '\0';
-}
+const int MAX_MESSAGE = 1024;
 
 int main(int argc, char *argv[])
 {
-//     cout << "argc is: " << argc << endl;
-//     cout << "argv[0] is: " << argv[0] << endl;
-//     cout << "argv[1] is: " << argv[1] << endl;
-//     cout << "argv[2] is: " << argv[2] << endl;
+    //     cout << "argc is: " << argc << endl;
+    //     cout << "argv[0] is: " << argv[0] << endl;
+    //     cout << "argv[1] is: " << argv[1] << endl;
+    //     cout << "argv[2] is: " << argv[2] << endl;
     // argc should be 3
-    if (argc != 3) {
+    if (argc != 3)
+    {
         cout << "Usage: ./client <port> “<command_name> <arg1> <arg2> ... <argN>”" << endl;
         return -1;
     }
 
-    if (!isNumber(argv[1]))
-    {
-        cout << "ERROR: Invalid input for port number" << endl;
-        return -1;
-    }
-    // no addr
-    //string addr = argv[1];
-    //cout<< addr <<endl;
-
-    unsigned short int port = stoi(argv[1]);
-    if (port > 65535 || port < 10000)
+    if (!isValidPortNumber(argv[1]))
     {
         cout << "ERROR: Invalid port number" << endl;
         return -1;
@@ -49,9 +35,8 @@ int main(int argc, char *argv[])
     //set add struct
     struct sockaddr_in st;
     st.sin_family = AF_INET;
-    //st.sin_addr.s_addr = inet_addr(argv[1]);
-    st.sin_addr.s_addr = inet_addr("127.0.0.1");
-    st.sin_port = port;
+    st.sin_addr.s_addr = INADDR_ANY;
+    st.sin_port = stoi(argv[1]);
 
     //set up socket
     int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -69,34 +54,32 @@ int main(int argc, char *argv[])
     }
 
     //keep asking user for input
-        char input[1024];
-        string command = argv[2];
-        // string to char array
-        strcpy(input, command.c_str());
-        // print command
-        cout <<"[C]: "<< command << endl;
+    char input[MAX_MESSAGE];
+    string command = argv[2];
+    // string to char array
+    strcpy(input, command.c_str());
+    // print command
+    cout << "[C]: " << command << endl;
 
-        //string s(input);
-        //send message to server
-        if (send(clientSocket, &input, sizeof(input), 0) < (int)sizeof(input))
-        {
-            cout << "ERROR: sending data" << endl;
-        }
+    //string s(input);
+    //send message to server
+    if (send(clientSocket, &input, sizeof(input), 0) < (int)sizeof(input))
+    {
+        cout << "ERROR: sending data" << endl;
+    }
 
-        // get feedback
-        // string feedback;
-        char feedback[1024];
-        int rec = recv(clientSocket, &feedback, 1024, 0);
-        //cout<< "feedback length is" << sizeof(feedback) <<endl;
-	     
-        if (rec == -1)
-        {
-            cout << "ERROR: receving data" << endl;
-        }
-        else
-        {
-            cout << feedback << endl;
-        }
+    // get feedback
+    // string feedback;
+    char feedback[MAX_MESSAGE];
+
+    if (recv(clientSocket, &feedback, sizeof(char) * MAX_MESSAGE, 0) == -1)
+    {
+        cout << "ERROR: receiving data" << endl;
+    }
+    else
+    {
+        cout << feedback << endl;
+    }
 
     return 0;
 }

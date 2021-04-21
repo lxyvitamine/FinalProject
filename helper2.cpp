@@ -41,7 +41,7 @@ string view_result_helper()
             {
                 numOfWinners++;
             }
-            
+
             feedback = feedback + (*it)->getName() + ": " + to_string((*it)->getVotes()) + "\n";
         }
 
@@ -68,11 +68,12 @@ string view_result_helper()
                     commaCount++;
                     if (commaCount == numOfWinners)
                     {
-                        feedback = feedback + (*it)->getName() +"\n";
-                       // cout << (*it)->getName() << endl;
+                        feedback = feedback + (*it)->getName() + "\n";
+                        // cout << (*it)->getName() << endl;
                     }
                     else
-                    {   feedback = feedback + (*it)->getName() + ", " + "\n";
+                    {
+                        feedback = feedback + (*it)->getName() + ", " + "\n";
                         //cout << (*it)->getName() << ", ";
                     }
                 }
@@ -81,7 +82,7 @@ string view_result_helper()
     }
     else
     {
-        feedback = "[R]:ERROR";
+        feedback = "[R]: ERROR";
         return feedback;
     }
 
@@ -95,15 +96,22 @@ bool isNumber(const string &str)
     return *ptr == '\0';
 }
 
+bool isValidPortNumber(const string &str)
+{
+    char *ptr;
+    int ret = strtol(str.c_str(), &ptr, 10);
+    return *ptr == '\0' && ret >= 0 && ret <= 65535;
+}
+
 // PARSER //
 vector<string> parseCmd(const string &raw_line, const string &delim)
 {
     vector<string> res;
     if (raw_line == "")
     {
-#if PRINT
+        #if PRINT
         cout << "empty string" << endl;
-#endif
+        #endif
         return res;
     }
     else
@@ -159,7 +167,7 @@ string start_election(string cmdpassword)
         feedback = "[R]: OK";
         return feedback;
     }
-    
+
     return NULL;
 }
 
@@ -175,12 +183,12 @@ string end_election(string cmdpassword)
     isOngoing = false;
 
     // end threads
-//     pthread_mutex_lock(&runningThreadLock);
-//     for (int i = 0; i < running_thread; i++)
-//     {
-//         pthread_detach(threads[i]);
-//     }
-//     pthread_mutex_unlock(&runningThreadLock);
+    //     pthread_mutex_lock(&runningThreadLock);
+    //     for (int i = 0; i < running_thread; i++)
+    //     {
+    //         pthread_detach(threads[i]);
+    //     }
+    //     pthread_mutex_unlock(&runningThreadLock);
 
     feedback = view_result_helper();
 
@@ -189,7 +197,7 @@ string end_election(string cmdpassword)
 
 string add_candidate(string cmdpassword, string candiName)
 {
-     string feedback;
+    string feedback;
     //cout << "[C]: add_candidate " << cmdpassword << " " << candiName << endl;
 
     // check isOngoing flag and password
@@ -213,14 +221,14 @@ string add_candidate(string cmdpassword, string candiName)
     Candidate *c = new Candidate(candiName, 0);
     candidates.push_back(c);
 
-   feedback = "[R]: OK";
+    feedback = "[R]: OK";
 
     return feedback;
 }
 
 string shutdown(string cmdpassword)
 {
-     string feedback;
+    string feedback;
     // if password doesn't match, print error
     if (password != cmdpassword)
     {
@@ -472,7 +480,6 @@ string check_voter_status(int voterId, int magicNum)
     }
 
     // voter not in voters
-
     return "[R]: CHECKSTATUS";
 }
 
@@ -486,13 +493,15 @@ string list_candidtates()
         // cout << "[R]: ";
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
-            if(it != candidates.end() - 1){
-				res = res + (*it)->getName() +"\n";
-			}else{
-				res = res + (*it)->getName();
-			}
+            if (it != candidates.end() - 1)
+            {
+                res = res + (*it)->getName() + "\n";
+            }
+            else
+            {
+                res = res + (*it)->getName();
+            }
 
-			
             //cout << (*it)->getName() << endl;
         }
         return res;
@@ -514,11 +523,11 @@ string vote_count(string name)
         {
             if ((*it)->getName() == name)
             {
-                feedback += (*it)->getVotes() + "\n";
+                feedback += (*it)->getVotes();
                 return feedback;
             }
         }
-        
+
         return "-1";
     }
     else

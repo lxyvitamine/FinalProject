@@ -29,7 +29,6 @@ extern bool isOngoing;
 extern int highest_vote;
 extern bool changePassword;
 // main() & mutex
-
 extern string userCmds[];
 
 extern pthread_mutex_t parseLock;
@@ -43,6 +42,7 @@ extern pthread_mutex_t userCmdsLock;
 // helper function
 string view_result_helper();
 bool isNumber(const string &str);
+bool isValidPortNumber(const string &str);
 int generateUniqueMagicNumber();
 
 // PARSER //

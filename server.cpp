@@ -12,32 +12,30 @@ char sendToClient[MAX_MESSAGE];
 string errorMsg = "ERROR";
 int sd;
 pid_t pid;
-int flag = -2;
+int flagShutdown = -2;
 
 pthread_t clientThreads[9999];
-int clientindex = 0;
+int clientIndex = 0;
 
 //signal handler for SIGINT
- void handleSigusr1(int signo){
-
-     //exit(0);
- }
+void handleSigusr1(int signo)
+{
+    //exit(0);
+}
 
 void *parseUserinput(void *input);
 
 void *threadHelper(void *argSd)
 {
-	//pthread_mutex_lock(&sdLock);
+    //pthread_mutex_lock(&sdLock);
     int threadSd = *(int *)argSd;
-	//pthread_mutex_unlock(&sdLock);
+    //pthread_mutex_unlock(&sdLock);
 
     //Do we need while loop?
     //receive message 1023 chars with \n
     char cmdFromClient[MAX_MESSAGE];
-    int numOfBytesRcvd = recv(threadSd, &cmdFromClient, sizeof(char) * MAX_MESSAGE, 0);
-	//cout<< "Server receive" << cmdFromClient <<endl;
 
-    if (numOfBytesRcvd == -1)
+    if (recv(threadSd, &cmdFromClient, sizeof(char) * MAX_MESSAGE, 0) == -1)
     {
         cout << "ERROR: receiving data" << endl;
     }
@@ -50,57 +48,55 @@ void *threadHelper(void *argSd)
         pthread_mutex_lock(&userCmdsLock);
         shutdown(password);
         pthread_mutex_unlock(&userCmdsLock);
-		char shutdownOK[MAX_MESSAGE]= "[R]: OK";
-        
-		if ((int)send(threadSd, &shutdownOK, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE))
+
+        char shutdownOK[MAX_MESSAGE] = "[R]: OK";
+
+        if ((int)send(threadSd, &shutdownOK, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE))
         {
-        cout << "ERROR: sending data" << endl;
+            cout << "ERROR: sending data" << endl;
         }
-		
- 		close(threadSd);
- 	    pthread_detach(pthread_self());
-        
-        flag = shutdown(sd, SHUT_RDWR);
-        
+
+        close(threadSd);
+        pthread_detach(pthread_self());
+
+        flagShutdown = shutdown(sd, SHUT_RDWR);
+
         //kill(pid, SIGUSR1);
-        
-    }else{
-        
-    // create new thread
-    // call parseuserinput
-    userCmds[running_thread] = input;
-    pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
-
-
-    // send feedback
-	//thread join
-	pthread_join(threads[running_thread], NULL);
-	
-	//pthread_mutex_lock(&runningThreadLock);
-	running_thread++;
-	//pthread_mutex_unlock(&runningThreadLock);
-	
-	pthread_mutex_lock(&parseLock);
-    if ((int)send(threadSd, &sendToClient, 1024, 0) < (int)(sizeof(char) * MAX_MESSAGE))
+    }
+    else
     {
-        cout << "ERROR: sending data" << endl;
-    }
-	memset(sendToClient, 0, sizeof(sendToClient));
-	pthread_mutex_unlock(&parseLock);
-	
+        // create new thread
+        // call parseuserinput
+        userCmds[running_thread] = input;
+        pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
 
-    close(threadSd);
-    pthread_detach(pthread_self());
-    //pthread_exit(NULL);
+        // send feedback
+        //thread join
+        pthread_join(threads[running_thread], NULL);
+
+        //pthread_mutex_lock(&runningThreadLock);
+        running_thread++;
+        //pthread_mutex_unlock(&runningThreadLock);
+
+        pthread_mutex_lock(&parseLock);
+        if ((int)send(threadSd, &sendToClient, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE))
+        {
+            cout << "ERROR: sending data" << endl;
+        }
+        memset(sendToClient, 0, sizeof(sendToClient));
+        pthread_mutex_unlock(&parseLock);
+
+        close(threadSd);
+        pthread_detach(pthread_self());
+        //pthread_exit(NULL);
     }
-    
+
     return NULL;
 }
 
-
 void *parseUserinput(void *input)
 {
-	pthread_mutex_lock(&userCmdsLock);
+    pthread_mutex_lock(&userCmdsLock);
     string userinput = *(static_cast<string *>(input));
     vector<string> inputs = parseCmd(userinput, " ");
 
@@ -250,16 +246,15 @@ void *parseUserinput(void *input)
         pthread_mutex_unlock(&parseLock);
     }
 
-	pthread_mutex_unlock(&userCmdsLock);
+    pthread_mutex_unlock(&userCmdsLock);
     return NULL;
 }
 
 int main(int argc, char *argv[])
 {
-	
-	pid = getpid();
-	signal(SIGUSR1, handleSigusr1); 
-     
+    pid = getpid();
+    signal(SIGUSR1, handleSigusr1);
+
     //default to 10000
     unsigned short int port = 10000;
     // 1. parse command
@@ -279,9 +274,11 @@ int main(int argc, char *argv[])
             break;
         case 'p':
             //connect to port
-            if (!isNumber(optarg))
+            if (!isValidPortNumber(optarg))
             {
-                cout << "ERROR: port must be a number" << endl;
+                cout << "ERROR: Invalid port number" << endl;
+                exit(0);
+                break;
             }
             port = stoi(optarg);
             break;
@@ -315,7 +312,7 @@ int main(int argc, char *argv[])
     }
 
     //listen
-    if (listen(sd, 20) < 0)
+    if (listen(sd, 20) == -1)
     {
         cout << "ERROR: listen" << endl;
         shutdown(sd, SHUT_RDWR);
@@ -326,51 +323,59 @@ int main(int argc, char *argv[])
     //wait for clients in an infinite loop
 
     //create an array for threads
-//     pthread_t clientThreads[9999];
-//     int index = 0;
+    //     pthread_t clientThreads[9999];
+    //     int index = 0;
 
-    if (0 != pthread_mutex_init(&sdLock, NULL)){
-        throw "ERROR: Failed to initialize a mutex";}
-	
-	if (0 != pthread_mutex_init(&runningThreadLock, NULL)){
-        throw "Failed to initialize a mutex";}
-	
-	if (0 != pthread_mutex_init(&userCmdsLock, NULL)){
-        throw "Failed to initialize a mutex";}
-	
+    if (0 != pthread_mutex_init(&sdLock, NULL))
+    {
+        throw "Failed to initialize a mutex";
+    }
+
+    if (0 != pthread_mutex_init(&runningThreadLock, NULL))
+    {
+        throw "Failed to initialize a mutex";
+    }
+
+    if (0 != pthread_mutex_init(&userCmdsLock, NULL))
+    {
+        throw "Failed to initialize a mutex";
+    }
+
     while (1)
     {
-        if(flag == 0) break;
+        if (flagShutdown == 0)
+            break;
         pthread_mutex_lock(&sdLock);
-		int isConnect = accept(sd, NULL, NULL);
-		pthread_mutex_unlock(&sdLock);
-        
-         if(isConnect < 0){
+        int isConnect = accept(sd, NULL, NULL);
+        pthread_mutex_unlock(&sdLock);
+
+        if (isConnect == -1)
+        {
             //cout << "ERROR: connection" << endl;
             continue;
         }
 
         //create a thread
         //pass isConnect sd as arg
-         
-        if (pthread_create(&clientThreads[clientindex], NULL, threadHelper, &isConnect) != 0)
+
+        if (pthread_create(&clientThreads[clientIndex], NULL, threadHelper, &isConnect) != 0)
         {
-            cout << "ERROR: creating threads" << endl;
+            cout << "ERROR: creating threads for clients" << endl;
         }
 
-        clientindex++;
+        clientIndex++;
     }
-    
-//     cout << "I am here " <<endl;
-//     for(int i = 0; i < clientindex; i++){
-//         pthread_detach(clientThreads[clientindex]);
-//     }
-    
-//     for(int i = 0; i< running_thread; i++){
-//         pthread_detach(threads[running_thread]);
-//     }
-    
-   pthread_exit(0);
-   //sleep(2);
-   return 0;
+
+    //     cout << "I am here " <<endl;
+    //     for(int i = 0; i < clientIndex; i++){
+    //         pthread_detach(clientThreads[clientIndex]);
+    //     }
+
+    //     for(int i = 0; i< running_thread; i++){
+    //         pthread_detach(threads[running_thread]);
+    //     }
+
+    pthread_exit(0);
+    //sleep(2);
+    return 0;
 }
