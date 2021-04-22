@@ -3,8 +3,6 @@
 
 using namespace std;
 
-const int MAX_MESSAGE = 1024;
-
 int main(int argc, char *argv[])
 {
     //     cout << "argc is: " << argc << endl;

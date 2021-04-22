@@ -16,9 +16,11 @@ using namespace std;
 
 // GLOBAL VARIABLE //
 // dealing with threads
-extern const int MAX_LIMIT;
-extern pthread_t threads[];
-extern int running_thread;
+extern vector<pthread_t> clientThreads;
+extern int clientIndex;
+// extern const int MAX_LIMIT;
+// extern pthread_t threads[];
+// extern int running_thread;
 // password
 extern string password;
 extern vector<Candidate *> candidates;
@@ -28,16 +30,22 @@ extern unordered_set<int> generatedMagicNumbers;
 extern bool isOngoing;
 extern int highest_vote;
 extern bool changePassword;
+extern int isShutdown;
 // main() & mutex
 extern string userCmds[];
 
-extern pthread_mutex_t parseLock;
-extern pthread_mutex_t runningThreadLock;
-extern pthread_mutex_t userCmdsLock;
+extern pthread_mutex_t sdLock;
+extern pthread_mutex_t isShutdownLock;
+extern pthread_mutex_t parseUserinputLock;
+extern pthread_mutex_t sendToClientLock;
 extern pthread_mutex_t candidatesLock;
-// extern pthread_mutex_t votersLock;
+extern pthread_mutex_t votersLock;
 // extern pthread_mutex_t inputLock;
 // extern pthread_mutex_t magicNumLock;
+extern int sd;
+extern const int MAX_MESSAGE;
+extern char sendToClient[];
+extern string errorMsg;
 
 // helper function
 string view_result_helper();

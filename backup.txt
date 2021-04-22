@@ -1,9 +1,6 @@
 1
-cit595
-1
+cit
+0
 CANDIDATE
-bob 1
-sally 1
+sally 0
 VOTER
-1000 31761
-1001 21422

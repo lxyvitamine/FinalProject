@@ -4,9 +4,11 @@ using namespace std;
 
 // GLOBAL VARIABLE //
 // dealing with threads
-const int MAX_LIMIT = 9999;
-pthread_t threads[MAX_LIMIT];
-int running_thread = 0;
+vector<pthread_t> clientThreads;
+int clientIndex = 0;
+// const int MAX_LIMIT = 9999;
+// pthread_t threads[MAX_LIMIT];
+// int running_thread = 0;
 // password
 string password = "cit595";
 vector<Candidate *> candidates;
@@ -16,16 +18,21 @@ unordered_set<int> generatedMagicNumbers;
 bool isOngoing = false;
 int highest_vote = 0;
 bool changePassword = false;
+int isShutdown = false;
 // main() & mutex
-string userCmds[MAX_LIMIT];
-
-pthread_mutex_t parseLock;
-pthread_mutex_t runningThreadLock;
-pthread_mutex_t userCmdsLock;
+// string userCmds[MAX_LIMIT];
+pthread_mutex_t sdLock;
+pthread_mutex_t isShutdownLock;
+pthread_mutex_t parseUserinputLock;
+pthread_mutex_t sendToClientLock;
 pthread_mutex_t candidatesLock;
-// pthread_mutex_t votersLock;
+pthread_mutex_t votersLock;
 // pthread_mutex_t inputLock;
 // pthread_mutex_t magicNumLock;
+int sd;
+const int MAX_MESSAGE = 1024;
+char sendToClient[MAX_MESSAGE];
+string errorMsg = "ERROR";
 
 // helper to view result of election
 string view_result_helper()
@@ -35,6 +42,7 @@ string view_result_helper()
 
     if (!isOngoing)
     {
+        pthread_mutex_lock(&candidatesLock);
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
             if ((*it)->getVotes() == highest_vote)
@@ -44,6 +52,7 @@ string view_result_helper()
 
             feedback = feedback + (*it)->getName() + ": " + to_string((*it)->getVotes()) + "\n";
         }
+        pthread_mutex_unlock(&candidatesLock);
 
         if (highest_vote == 0)
         {
@@ -61,6 +70,7 @@ string view_result_helper()
             {
                 feedback = feedback + "Draw: ";
             }
+            pthread_mutex_lock(&candidatesLock);
             for (auto it = candidates.begin(); it < candidates.end(); it++)
             {
                 if ((*it)->getVotes() == highest_vote)
@@ -68,16 +78,17 @@ string view_result_helper()
                     commaCount++;
                     if (commaCount == numOfWinners)
                     {
-                        feedback = feedback + (*it)->getName() + "\n";
+                        feedback = feedback + (*it)->getName();
                         // cout << (*it)->getName() << endl;
                     }
                     else
                     {
-                        feedback = feedback + (*it)->getName() + ", " + "\n";
+                        feedback = feedback + (*it)->getName() + ", ";
                         //cout << (*it)->getName() << ", ";
                     }
                 }
             }
+            pthread_mutex_unlock(&candidatesLock);
         }
     }
     else
@@ -109,9 +120,9 @@ vector<string> parseCmd(const string &raw_line, const string &delim)
     vector<string> res;
     if (raw_line == "")
     {
-        #if PRINT
+#if PRINT
         cout << "empty string" << endl;
-        #endif
+#endif
         return res;
     }
     else
@@ -164,6 +175,14 @@ string start_election(string cmdpassword)
         }
 
         isOngoing = true;
+        highest_vote = 0;
+        pthread_mutex_lock(&candidatesLock);
+        candidates.clear();
+        pthread_mutex_unlock(&candidatesLock);
+        pthread_mutex_lock(&votersLock);
+        voters.clear();
+        pthread_mutex_unlock(&votersLock);
+
         feedback = "[R]: OK";
         return feedback;
     }
@@ -238,13 +257,13 @@ string shutdown(string cmdpassword)
     }
 
     // end thread
-//     if (isOngoing)
-//     {
-//         for (int i = 0; i < running_thread; i++)
-//         {
-//             pthread_detach(threads[i]);
-//         }
-//     }
+    //     if (isOngoing)
+    //     {
+    //         for (int i = 0; i < running_thread; i++)
+    //         {
+    //             pthread_detach(threads[i]);
+    //         }
+    //     }
 
     // write into backup.txt
     ofstream myfile("backup.txt");
@@ -279,11 +298,13 @@ string shutdown(string cmdpassword)
 
         // write voters
         myfile << "VOTER" << endl;
+        pthread_mutex_lock(&votersLock);
         for (int i = 0; i < (int)voters.size(); i++)
         {
             string voterInfo = to_string(voters[i]->getId()) + " " + to_string(voters[i]->getMagicNum());
             myfile << voterInfo << endl;
         }
+        pthread_mutex_unlock(&votersLock);
 
         myfile.close();
     }
@@ -295,12 +316,13 @@ string shutdown(string cmdpassword)
         delete candidates[i];
     }
     pthread_mutex_unlock(&candidatesLock);
-    
-    
+
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         delete voters[i];
     }
+    pthread_mutex_unlock(&votersLock);
 
     feedback = "[R]: OK";
 
@@ -314,19 +336,24 @@ string add_voter(int voterId)
     {
         return "[R]: ERROR";
     }
-    
+
     // check exists
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         {
+            pthread_mutex_unlock(&votersLock);
             return "[R]: EXISTS";
         }
     }
+    pthread_mutex_unlock(&votersLock);
 
     // create a new voter
     Voter *v = new Voter(voterId, 0);
+    pthread_mutex_lock(&votersLock);
     voters.push_back(v);
+    pthread_mutex_unlock(&votersLock);
 
     return "[R]: OK";
 }
@@ -356,6 +383,7 @@ string vote_for(string name, int voterId)
     // check if voter exists, voterId innvalid: NOTAVOTER
     bool canVote = false;
 
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
@@ -363,6 +391,7 @@ string vote_for(string name, int voterId)
             canVote = true; // voter exist
         }
     }
+    pthread_mutex_unlock(&votersLock);
 
     if (!canVote)
     {
@@ -370,22 +399,26 @@ string vote_for(string name, int voterId)
     }
 
     // check if voter already voted, already voted: ALREADYVOTED
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         {
             if (voters[i]->getMagicNum() != 0)
             { // magic number != 0, voted
+                pthread_mutex_unlock(&votersLock);
                 return "[R]: ALREADYVOTED";
             }
         }
     }
+    pthread_mutex_unlock(&votersLock);
 
     // check if candidate exists
     // candidate exists in system: EXISTS
     canVote = false;
     // returned string
     string res;
+    pthread_mutex_lock(&candidatesLock);
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         if (candidates[i]->getName() == name)
@@ -400,12 +433,17 @@ string vote_for(string name, int voterId)
             break;
         }
     }
+    pthread_mutex_unlock(&candidatesLock);
 
     // candidate not exists in system: NEW
     if (!canVote)
     {
         Candidate *c = new Candidate(name, 1); // set vote to 1
+
+        pthread_mutex_lock(&candidatesLock);
         candidates.push_back(c);
+        pthread_mutex_unlock(&candidatesLock);
+
         // update highest_vote
         highest_vote = max(highest_vote, c->getVotes());
         //cout << "[R]: NEW" << endl;
@@ -420,6 +458,7 @@ string vote_for(string name, int voterId)
     magicNumber = generateUniqueMagicNumber();
 
     // print magicNumber of this voter
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
@@ -430,6 +469,7 @@ string vote_for(string name, int voterId)
             break;
         }
     }
+    pthread_mutex_unlock(&votersLock);
 
     return res;
 }
@@ -449,13 +489,16 @@ string check_registration_status(int voterId)
     }
 
     // check if voter exists
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         { // voter exist
+            pthread_mutex_unlock(&votersLock);
             return "[R]: EXISTS";
         }
     }
+    pthread_mutex_unlock(&votersLock);
 
     // voter not exist
     return "[R]: UNREGISTERED";
@@ -468,6 +511,7 @@ string check_voter_status(int voterId, int magicNum)
         return "[R]: ERROR";
     }
 
+    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
@@ -475,14 +519,17 @@ string check_voter_status(int voterId, int magicNum)
             // wrong magicNum, print “UNAUTHORIZED”
             if (voters[i]->getMagicNum() != magicNum || magicNum == 0)
             {
+                pthread_mutex_unlock(&votersLock);
                 return "[R]: UNAUTHORIZED";
             }
             else
             { // “ALREADYVOTED” if voter has voted
+                pthread_mutex_unlock(&votersLock);
                 return "[R]: ALREADYVOTED";
             }
         }
     }
+    pthread_mutex_unlock(&votersLock);
 
     // voter not in voters
     return "[R]: CHECKSTATUS";
@@ -493,9 +540,11 @@ string list_candidtates()
 {
     // cout << "[C]: list_candidtates" << endl;
     string res = "[R]: ";
+
     if (isOngoing)
     {
         // cout << "[R]: ";
+        pthread_mutex_lock(&candidatesLock);
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
             if (it != candidates.end() - 1)
@@ -509,6 +558,8 @@ string list_candidtates()
 
             //cout << (*it)->getName() << endl;
         }
+        pthread_mutex_unlock(&candidatesLock);
+
         return res;
     }
     else
@@ -524,14 +575,17 @@ string vote_count(string name)
 
     if (isOngoing)
     {
+        pthread_mutex_lock(&candidatesLock);
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
             if ((*it)->getName() == name)
             {
-                feedback += (*it)->getVotes();
+                feedback += to_string((*it)->getVotes());
+                pthread_mutex_unlock(&candidatesLock);
                 return feedback;
             }
         }
+        pthread_mutex_unlock(&candidatesLock);
 
         return "-1";
     }
@@ -589,7 +643,10 @@ void recover()
         {
             vector<string> store = parseCmd(candidateInfo, " ");
             Candidate *c = new Candidate(store[0], stoi(store[1]));
+
+            pthread_mutex_lock(&candidatesLock);
             candidates.push_back(c);
+            pthread_mutex_unlock(&candidatesLock);
         }
 
         string voterInfo;
@@ -597,7 +654,10 @@ void recover()
         {
             vector<string> vstore = parseCmd(voterInfo, " ");
             Voter *v = new Voter(stoi(vstore[0]), stoi(vstore[1]));
+
+            pthread_mutex_lock(&votersLock);
             voters.push_back(v);
+            pthread_mutex_unlock(&votersLock);
         }
 
         myfile.close();
