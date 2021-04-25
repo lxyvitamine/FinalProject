@@ -1,0 +1,9 @@
+1
+cit595
+1
+CANDIDATE
+bob 1
+bobby 0
+VOTER
+1000 98440
+1001 0

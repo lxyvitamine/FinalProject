@@ -1,0 +1,14 @@
+syntax = "proto3";
+package protos;
+
+message Request {
+    string userInput = 1;
+}
+
+message Response { 
+	  string feedback = 1;
+}
+
+service VoteManager {
+	rpc parseUserCmd(Request) returns (Response); 
+}

@@ -1,0 +1,4 @@
+/home/codio/workspace/finalEC2/CMakeFiles/rebuild_cache.dir
+/home/codio/workspace/finalEC2/CMakeFiles/server.dir
+/home/codio/workspace/finalEC2/CMakeFiles/edit_cache.dir
+/home/codio/workspace/finalEC2/CMakeFiles/client.dir
