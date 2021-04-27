@@ -152,6 +152,14 @@ vector<string> parseCmd(const string &raw_line, const string &delim)
 string start_election(string cmdpassword)
 {
     string feedback;
+    // TODO
+    // clean the backup.txt file
+    if (!isOngoing)
+    {
+        ofstream ofs;
+        ofs.open("backup.txt", ofstream::out | ofstream::trunc);
+        ofs.close();
+    }
 
     if (cmdpassword != password)
     {
@@ -165,26 +173,21 @@ string start_election(string cmdpassword)
             feedback = "[R]: EXISTS";
             return feedback;
         }
-        else
-        {
-            // clean the backup.txt file
-            ofstream ofs;
-            ofs.open("backup.txt", ofstream::out | ofstream::trunc);
-            ofs.close();
 
-            isOngoing = true;
-            highest_vote = 0;
-            pthread_mutex_lock(&candidatesLock);
-            candidates.clear();
-            pthread_mutex_unlock(&candidatesLock);
-            pthread_mutex_lock(&votersLock);
-            voters.clear();
-            pthread_mutex_unlock(&votersLock);
+        isOngoing = true;
+        highest_vote = 0;
+        pthread_mutex_lock(&candidatesLock);
+        candidates.clear();
+        pthread_mutex_unlock(&candidatesLock);
+        pthread_mutex_lock(&votersLock);
+        voters.clear();
+        pthread_mutex_unlock(&votersLock);
 
-            feedback = "[R]: OK";
-            return feedback;
-        }
+        feedback = "[R]: OK";
+        return feedback;
     }
+
+    return NULL;
 }
 
 string end_election(string cmdpassword)
