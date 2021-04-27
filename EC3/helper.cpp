@@ -1,14 +1,12 @@
-#include "helper2.h"
+#include "helper.h"
 
 using namespace std;
 
 // GLOBAL VARIABLE //
 // dealing with threads
-vector<pthread_t> clientThreads;
-// int clientIndex = 0;
-// const int MAX_LIMIT = 9999;
-// pthread_t threads[MAX_LIMIT];
-// int running_thread = 0;
+const int MAX_LIMIT = 9999;
+pthread_t threads[MAX_LIMIT];
+int running_thread = 0;
 // password
 string password = "cit595";
 vector<Candidate *> candidates;
@@ -18,59 +16,49 @@ unordered_set<int> generatedMagicNumbers;
 bool isOngoing = false;
 int highest_vote = 0;
 bool changePassword = false;
-int isShutdown = false;
 // main() & mutex
-// string userCmds[MAX_LIMIT];
-pthread_mutex_t sdLock;
-pthread_mutex_t isShutdownLock;
-pthread_mutex_t parseUserinputLock;
-pthread_mutex_t sendToClientLock;
-pthread_mutex_t candidatesLock;
-pthread_mutex_t votersLock;
+string userCmds[MAX_LIMIT];
+
+pthread_mutex_t parseLock;
+pthread_mutex_t runningThreadLock;
+// pthread_mutex_t userCmdsLock;
+// pthread_mutex_t candidatesLock;
+// pthread_mutex_t votersLock;
 // pthread_mutex_t inputLock;
 // pthread_mutex_t magicNumLock;
-int sd;
-const int MAX_MESSAGE = 1024;
-char sendToClient[MAX_MESSAGE];
-string errorMsg = "ERROR";
 
 // helper to view result of election
-string view_result_helper()
+void view_result_helper()
 {
-    string feedback;
     int numOfWinners = 0;
+    cout << "[R]: ";
 
     if (!isOngoing)
     {
-        pthread_mutex_lock(&candidatesLock);
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
             if ((*it)->getVotes() == highest_vote)
             {
                 numOfWinners++;
             }
-
-            feedback = feedback + (*it)->getName() + ": " + to_string((*it)->getVotes()) + "\n";
+            cout << (*it)->getName() << ": " << (*it)->getVotes() << endl;
         }
-        pthread_mutex_unlock(&candidatesLock);
 
         if (highest_vote == 0)
         {
-            feedback = feedback + "No Winner";
-            return feedback;
+            cout << "No Winner" << endl;
         }
         else
         {
             int commaCount = 0;
             if (numOfWinners == 1)
             {
-                feedback = feedback + "Winner: ";
+                cout << "Winner: ";
             }
             else
             {
-                feedback = feedback + "Draw: ";
+                cout << "Draw: ";
             }
-            pthread_mutex_lock(&candidatesLock);
             for (auto it = candidates.begin(); it < candidates.end(); it++)
             {
                 if ((*it)->getVotes() == highest_vote)
@@ -78,26 +66,22 @@ string view_result_helper()
                     commaCount++;
                     if (commaCount == numOfWinners)
                     {
-                        feedback = feedback + (*it)->getName();
-                        // cout << (*it)->getName() << endl;
+                        cout << (*it)->getName() << endl;
                     }
                     else
                     {
-                        feedback = feedback + (*it)->getName() + ", ";
-                        //cout << (*it)->getName() << ", ";
+                        cout << (*it)->getName() << ", ";
                     }
                 }
             }
-            pthread_mutex_unlock(&candidatesLock);
         }
     }
     else
     {
-        feedback = "[R]: ERROR";
-        return feedback;
+        cout << "ERROR" << endl;
     }
 
-    return feedback;
+    return;
 }
 
 bool isNumber(const string &str)
@@ -105,13 +89,6 @@ bool isNumber(const string &str)
     char *ptr;
     strtol(str.c_str(), &ptr, 10);
     return *ptr == '\0';
-}
-
-bool isValidPortNumber(const string &str)
-{
-    char *ptr;
-    int ret = strtol(str.c_str(), &ptr, 10);
-    return *ptr == '\0' && ret >= 0 && ret <= 65535;
 }
 
 // PARSER //
@@ -149,118 +126,113 @@ vector<string> parseCmd(const string &raw_line, const string &delim)
 }
 
 // ADMIN //
-string start_election(string cmdpassword)
+void start_election(string cmdpassword)
 {
-    string feedback;
+    // TODO
+    // clean the backup.txt file
+    if (!isOngoing)
+    {
+        ofstream ofs;
+        ofs.open("backup.txt", ofstream::out | ofstream::trunc);
+        ofs.close();
+    }
+
+    cout << "[C]: start_election " << cmdpassword << endl;
 
     if (cmdpassword != password)
     {
-        feedback = "[R]: ERROR";
-        return feedback;
+        cout << "[R]: ERROR" << endl;
+        return;
     }
     else
     {
         if (isOngoing)
         {
-            feedback = "[R]: EXISTS";
-            return feedback;
+            cout << "[R]: EXISTS" << endl;
+            return;
         }
-        else
-        {
-            // clean the backup.txt file
-            ofstream ofs;
-            ofs.open("backup.txt", ofstream::out | ofstream::trunc);
-            ofs.close();
 
-            isOngoing = true;
-            highest_vote = 0;
-            pthread_mutex_lock(&candidatesLock);
-            candidates.clear();
-            pthread_mutex_unlock(&candidatesLock);
-            pthread_mutex_lock(&votersLock);
-            voters.clear();
-            pthread_mutex_unlock(&votersLock);
-
-            feedback = "[R]: OK";
-            return feedback;
-        }
+        isOngoing = true;
+        cout << "[R]: OK" << endl;
     }
+
+    return;
 }
 
-string end_election(string cmdpassword)
+void end_election(string cmdpassword)
 {
-    string feedback;
+    cout << "[C]: end_election " << cmdpassword << endl;
+
     if (!isOngoing || cmdpassword != password)
     {
-        feedback = "[R]: ERROR";
-        return feedback;
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
     isOngoing = false;
 
     // end threads
-    //     pthread_mutex_lock(&runningThreadLock);
-    //     for (int i = 0; i < running_thread; i++)
-    //     {
-    //         pthread_detach(threads[i]);
-    //     }
-    //     pthread_mutex_unlock(&runningThreadLock);
+    pthread_mutex_lock(&runningThreadLock);
+    for (int i = 0; i < running_thread; i++)
+    {
+        pthread_detach(threads[i]);
+    }
+    pthread_mutex_unlock(&runningThreadLock);
 
-    feedback = view_result_helper();
+    view_result_helper();
 
-    return feedback;
+    return;
 }
 
-string add_candidate(string cmdpassword, string candiName)
+void add_candidate(string cmdpassword, string candiName)
 {
-    string feedback;
-    //cout << "[C]: add_candidate " << cmdpassword << " " << candiName << endl;
+    cout << "[C]: add_candidate " << cmdpassword << " " << candiName << endl;
 
     // check isOngoing flag and password
     if (cmdpassword != password || !isOngoing)
     {
-        feedback = "[R]: ERROR";
-        return feedback;
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
     // check if candidate already exists
-    pthread_mutex_lock(&candidatesLock);
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         if (candidates[i]->getName() == candiName)
         {
-            feedback = "[R]: EXISTS";
-            pthread_mutex_unlock(&candidatesLock);
-            return feedback;
+            cout << "[R]: EXISTS" << endl;
+            return;
         }
     }
 
     // if not, create new candidate
     Candidate *c = new Candidate(candiName, 0);
     candidates.push_back(c);
-    pthread_mutex_unlock(&candidatesLock);
-    feedback = "[R]: OK";
-    return feedback;
+
+    cout << "[R]: OK" << endl;
+
+    return;
 }
 
-string shutdown(string cmdpassword)
+void shutdown(string cmdpassword)
 {
-    string feedback;
+    cout << "[C]: shutdown " << cmdpassword << endl;
+
     // if password doesn't match, print error
     if (password != cmdpassword)
     {
-        feedback = "[R]: ERROR";
-        return feedback;
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
     // end thread
-    //     if (isOngoing)
-    //     {
-    //         for (int i = 0; i < running_thread; i++)
-    //         {
-    //             pthread_detach(threads[i]);
-    //         }
-    //     }
+    if (isOngoing)
+    {
+        for (int i = 0; i < running_thread; i++)
+        {
+            pthread_detach(threads[i]);
+        }
+    }
 
     // write into backup.txt
     ofstream myfile("backup.txt");
@@ -285,74 +257,68 @@ string shutdown(string cmdpassword)
 
         // write candidate
         myfile << "CANDIDATE" << endl;
-        pthread_mutex_lock(&candidatesLock);
+
         for (int i = 0; i < (int)candidates.size(); i++)
         {
             string candidateInfo = candidates[i]->getName() + " " + to_string(candidates[i]->getVotes());
             myfile << candidateInfo << endl;
         }
-        pthread_mutex_unlock(&candidatesLock);
 
         // write voters
         myfile << "VOTER" << endl;
-        pthread_mutex_lock(&votersLock);
         for (int i = 0; i < (int)voters.size(); i++)
         {
             string voterInfo = to_string(voters[i]->getId()) + " " + to_string(voters[i]->getMagicNum());
             myfile << voterInfo << endl;
         }
-        pthread_mutex_unlock(&votersLock);
 
         myfile.close();
     }
 
     // delete heap memory
-    pthread_mutex_lock(&candidatesLock);
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         delete candidates[i];
     }
-    pthread_mutex_unlock(&candidatesLock);
 
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         delete voters[i];
     }
-    pthread_mutex_unlock(&votersLock);
 
-    feedback = "[R]: OK";
+    cout << "[R]: OK" << endl;
 
-    return feedback;
+    return;
 }
 
 // VOTER //
-string add_voter(int voterId)
-{
+void add_voter(int voterId)
+{   
+    cout << "[C]: add_voter " << voterId << endl;
+
     if (!isOngoing || voterId > 9999 || voterId < 1000)
     {
-        return "[R]: ERROR";
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
     // check exists
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         {
-            pthread_mutex_unlock(&votersLock);
-            return "[R]: EXISTS";
+            cout << "[R]: EXISTS" << endl;
+            return;
         }
     }
-    pthread_mutex_unlock(&votersLock);
 
     // create a new voter
     Voter *v = new Voter(voterId, 0);
-    pthread_mutex_lock(&votersLock);
     voters.push_back(v);
-    pthread_mutex_unlock(&votersLock);
 
-    return "[R]: OK";
+    cout << "[R]: OK" << endl;
+
+    return;
 }
 
 // helper funtion to generate unique magic number
@@ -370,17 +336,19 @@ int generateUniqueMagicNumber()
     return num;
 }
 
-string vote_for(string name, int voterId)
+void vote_for(string name, int voterId)
 {
+    cout << "[C]: vote_for " << name << " " << voterId << endl;
+
     if (!isOngoing || voterId > 9999 || voterId < 1000)
     {
-        return "[R]: ERROR";
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
     // check if voter exists, voterId innvalid: NOTAVOTER
     bool canVote = false;
 
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
@@ -388,40 +356,35 @@ string vote_for(string name, int voterId)
             canVote = true; // voter exist
         }
     }
-    pthread_mutex_unlock(&votersLock);
 
     if (!canVote)
     {
-        return "[R]: NOTAVOTER";
+        cout << "[R]: NOTAVOTER" << endl;
+        return;
     }
 
     // check if voter already voted, already voted: ALREADYVOTED
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         {
             if (voters[i]->getMagicNum() != 0)
             { // magic number != 0, voted
-                pthread_mutex_unlock(&votersLock);
-                return "[R]: ALREADYVOTED";
+                cout << "[R]: ALREADYVOTED" << endl;
+                return;
             }
         }
     }
-    pthread_mutex_unlock(&votersLock);
 
     // check if candidate exists
     // candidate exists in system: EXISTS
     canVote = false;
-    // returned string
-    string res;
-    pthread_mutex_lock(&candidatesLock);
+
     for (int i = 0; i < (int)candidates.size(); i++)
     {
         if (candidates[i]->getName() == name)
         {
-            //cout << "[R]: EXISTS" << endl;
-            res = "[R]: EXISTS";
+            cout << "[R]: EXISTS" << endl;
             // increment vote count by 1
             candidates[i]->addVotes();
             // update highest_vote
@@ -430,21 +393,15 @@ string vote_for(string name, int voterId)
             break;
         }
     }
-    pthread_mutex_unlock(&candidatesLock);
 
     // candidate not exists in system: NEW
     if (!canVote)
     {
         Candidate *c = new Candidate(name, 1); // set vote to 1
-
-        pthread_mutex_lock(&candidatesLock);
         candidates.push_back(c);
-        pthread_mutex_unlock(&candidatesLock);
-
         // update highest_vote
         highest_vote = max(highest_vote, c->getVotes());
-        //cout << "[R]: NEW" << endl;
-        res = "[R]: NEW";
+        cout << "[R]: NEW" << endl;
     }
 
     // finish vote and return magic number
@@ -455,60 +412,63 @@ string vote_for(string name, int voterId)
     magicNumber = generateUniqueMagicNumber();
 
     // print magicNumber of this voter
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         {
             voters[i]->setMagicNum(magicNumber);
-            res = res + "\n" + to_string(magicNumber);
-            //cout << magicNumber << endl;
+            cout << magicNumber << endl;
             break;
         }
     }
-    pthread_mutex_unlock(&votersLock);
 
-    return res;
+    return;
 }
 
-string check_registration_status(int voterId)
+void check_registration_status(int voterId)
 {
+    cout << "[C]: check_registration_status " << voterId << endl;
+
     // check isOngoing
     if (!isOngoing)
     {
-        return "[R]: ERROR";
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
     // id out of range
     if (voterId > 9999 || voterId < 1000)
     {
-        return "[R]: INVALID";
+        cout << "[R]: INVALID" << endl;
+        return;
     }
 
     // check if voter exists
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
         { // voter exist
-            pthread_mutex_unlock(&votersLock);
-            return "[R]: EXISTS";
+            cout << "[R]: EXISTS" << endl;
+            return;
         }
     }
-    pthread_mutex_unlock(&votersLock);
 
     // voter not exist
-    return "[R]: UNREGISTERED";
+    cout << "[R]: UNREGISTERED" << endl;
+
+    return;
 }
 
-string check_voter_status(int voterId, int magicNum)
+void check_voter_status(int voterId, int magicNum)
 {
+    cout << "[C]: check_voter_status " << voterId << " " << magicNum << endl;
+
     if (!isOngoing || voterId > 9999 || voterId < 1000)
     {
-        return "[R]: ERROR";
+        cout << "[R]: ERROR" << endl;
+        return;
     }
 
-    pthread_mutex_lock(&votersLock);
     for (int i = 0; i < (int)voters.size(); i++)
     {
         if (voters[i]->getId() == voterId)
@@ -516,85 +476,73 @@ string check_voter_status(int voterId, int magicNum)
             // wrong magicNum, print “UNAUTHORIZED”
             if (voters[i]->getMagicNum() != magicNum || magicNum == 0)
             {
-                pthread_mutex_unlock(&votersLock);
-                return "[R]: UNAUTHORIZED";
+                cout << "[R]: UNAUTHORIZED" << endl;
+                return;
             }
             else
             { // “ALREADYVOTED” if voter has voted
-                pthread_mutex_unlock(&votersLock);
-                return "[R]: ALREADYVOTED";
+                cout << "[R]: ALREADYVOTED" << endl;
+                return;
             }
         }
     }
-    pthread_mutex_unlock(&votersLock);
 
     // voter not in voters
-    return "[R]: CHECKSTATUS";
+    cout << "[R]: CHECKSTATUS" << endl;
+
+    return;
 }
 
 // ANY USER //
-string list_candidtates()
+void list_candidtates()
 {
-    // cout << "[C]: list_candidtates" << endl;
-    string res = "[R]: ";
+    cout << "[C]: list_candidtates" << endl;
 
     if (isOngoing)
     {
-        // cout << "[R]: ";
-        pthread_mutex_lock(&candidatesLock);
+        cout << "[R]: ";
+
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
-            if (it != candidates.end() - 1)
-            {
-                res = res + (*it)->getName() + "\n";
-            }
-            else
-            {
-                res = res + (*it)->getName();
-            }
-
-            //cout << (*it)->getName() << endl;
+            cout << (*it)->getName() << endl;
         }
-        pthread_mutex_unlock(&candidatesLock);
-
-        return res;
     }
     else
     {
-        return res;
+        cout << "[R]: " << endl;
     }
 }
 
-string vote_count(string name)
+void vote_count(string name)
 {
-    string feedback;
-    feedback += "[R]: ";
+    cout << "[C]: vote_count " << name << endl;
+    cout << "[R]: ";
 
     if (isOngoing)
     {
-        pthread_mutex_lock(&candidatesLock);
         for (auto it = candidates.begin(); it < candidates.end(); it++)
         {
             if ((*it)->getName() == name)
             {
-                feedback += to_string((*it)->getVotes());
-                pthread_mutex_unlock(&candidatesLock);
-                return feedback;
+                cout << (*it)->getVotes() << endl;
+                return;
             }
         }
-        pthread_mutex_unlock(&candidatesLock);
-
-        return "-1";
+        cout << "-1" << endl;
+        return;
     }
     else
     {
-        return "-1";
+        cout << "-1" << endl;
+        return;
     }
 }
 
-string view_result()
+void view_result()
 {
-    return view_result_helper();
+    cout << "[C]: view_result" << endl;
+    view_result_helper();
+    return;
 }
 
 // optional argument: -r
@@ -602,7 +550,7 @@ void recover()
 {
     ifstream myfile("backup.txt"); // hard code to read "backup.txt"
 
-    if (myfile.is_open() && myfile.peek() != ifstream::traits_type::eof())
+    if (myfile.is_open())
     {
         // check condition
         string ongoing;
@@ -640,10 +588,7 @@ void recover()
         {
             vector<string> store = parseCmd(candidateInfo, " ");
             Candidate *c = new Candidate(store[0], stoi(store[1]));
-
-            pthread_mutex_lock(&candidatesLock);
             candidates.push_back(c);
-            pthread_mutex_unlock(&candidatesLock);
         }
 
         string voterInfo;
@@ -651,10 +596,7 @@ void recover()
         {
             vector<string> vstore = parseCmd(voterInfo, " ");
             Voter *v = new Voter(stoi(vstore[0]), stoi(vstore[1]));
-
-            pthread_mutex_lock(&votersLock);
             voters.push_back(v);
-            pthread_mutex_unlock(&votersLock);
         }
 
         myfile.close();

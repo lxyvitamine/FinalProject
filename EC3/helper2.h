@@ -75,3 +75,10 @@ string view_result();
 
 // optional argument: -r
 void recover();
+
+// for EC3
+void start_election_ctrlc();
+void end_election_ctrlc();
+void add_candidate_ctrlc(string candiName);
+void add_voter_ctrlc(int voterId);
+void vote_for_ctrlc(string name, int voterId);

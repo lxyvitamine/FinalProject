@@ -168,9 +168,23 @@ string start_election(string cmdpassword)
         else
         {
             // clean the backup.txt file
-            ofstream ofs;
-            ofs.open("backup.txt", ofstream::out | ofstream::trunc);
-            ofs.close();
+            ofstream backup;
+            backup.open("backup.txt", ofstream::out | ofstream::trunc);
+            backup.close();
+
+            // clean the clientCommands.txt file and write the start_election command
+            ofstream clientCommands;
+            clientCommands.open("clientCommands.txt", ofstream::out | ofstream::trunc);
+            if (clientCommands.is_open())
+            {
+                clientCommands << "start_election_ctrlc" << endl;
+            }
+            clientCommands.close();
+
+            // clean the votersInfo.txt file
+            ofstream votersInfo;
+            votersInfo.open("votersInfo.txt", ofstream::out | ofstream::trunc);
+            votersInfo.close();
 
             isOngoing = true;
             highest_vote = 0;
@@ -187,9 +201,26 @@ string start_election(string cmdpassword)
     }
 }
 
+void start_election_ctrlc()
+{
+    isOngoing = true;
+    highest_vote = 0;
+    pthread_mutex_lock(&candidatesLock);
+    candidates.clear();
+    pthread_mutex_unlock(&candidatesLock);
+    pthread_mutex_lock(&votersLock);
+    voters.clear();
+    pthread_mutex_unlock(&votersLock);
+
+    ofstream backup;
+    backup.open("backup.txt", ofstream::out | ofstream::trunc);
+    backup.close();
+}
+
 string end_election(string cmdpassword)
 {
     string feedback;
+
     if (!isOngoing || cmdpassword != password)
     {
         feedback = "[R]: ERROR";
@@ -197,6 +228,14 @@ string end_election(string cmdpassword)
     }
 
     isOngoing = false;
+
+    ofstream clientCommands;
+    clientCommands.open("clientCommands.txt", ofstream::app);
+    if (clientCommands.is_open())
+    {
+        clientCommands << "end_election_ctrlc" << endl;
+    }
+    clientCommands.close();
 
     // end threads
     //     pthread_mutex_lock(&runningThreadLock);
@@ -209,6 +248,11 @@ string end_election(string cmdpassword)
     feedback = view_result_helper();
 
     return feedback;
+}
+
+void end_election_ctrlc()
+{
+    isOngoing = false;
 }
 
 string add_candidate(string cmdpassword, string candiName)
@@ -234,13 +278,33 @@ string add_candidate(string cmdpassword, string candiName)
             return feedback;
         }
     }
+    pthread_mutex_unlock(&candidatesLock);
 
     // if not, create new candidate
     Candidate *c = new Candidate(candiName, 0);
+    pthread_mutex_lock(&candidatesLock);
     candidates.push_back(c);
     pthread_mutex_unlock(&candidatesLock);
+
+    // write add_candidate command to clientCommands.txt file
+    ofstream clientCommands;
+    clientCommands.open("clientCommands.txt", ofstream::app);
+    if (clientCommands.is_open())
+    {
+        clientCommands << "add_candidate_ctrlc " << candiName << endl;
+    }
+    clientCommands.close();
+
     feedback = "[R]: OK";
     return feedback;
+}
+
+void add_candidate_ctrlc(string candiName)
+{
+    Candidate *c = new Candidate(candiName, 0);
+    pthread_mutex_lock(&candidatesLock);
+    candidates.push_back(c);
+    pthread_mutex_unlock(&candidatesLock);
 }
 
 string shutdown(string cmdpassword)
@@ -306,6 +370,16 @@ string shutdown(string cmdpassword)
         myfile.close();
     }
 
+    // clean the clientCommands.txt file
+    ofstream clientCommands;
+    clientCommands.open("clientCommands.txt", ofstream::out | ofstream::trunc);
+    clientCommands.close();
+
+    // clean the votersInfo.txt file
+    ofstream votersInfo;
+    votersInfo.open("votersInfo.txt", ofstream::out | ofstream::trunc);
+    votersInfo.close();
+
     // delete heap memory
     pthread_mutex_lock(&candidatesLock);
     for (int i = 0; i < (int)candidates.size(); i++)
@@ -352,7 +426,24 @@ string add_voter(int voterId)
     voters.push_back(v);
     pthread_mutex_unlock(&votersLock);
 
+    // write add_voter command to clientCommands.txt file
+    ofstream clientCommands;
+    clientCommands.open("clientCommands.txt", ofstream::app);
+    if (clientCommands.is_open())
+    {
+        clientCommands << "add_voter_ctrlc " << to_string(voterId) << endl;
+    }
+    clientCommands.close();
+
     return "[R]: OK";
+}
+
+void add_voter_ctrlc(int voterId)
+{
+    Voter *v = new Voter(voterId, 0);
+    pthread_mutex_lock(&votersLock);
+    voters.push_back(v);
+    pthread_mutex_unlock(&votersLock);
 }
 
 // helper funtion to generate unique magic number
@@ -468,7 +559,92 @@ string vote_for(string name, int voterId)
     }
     pthread_mutex_unlock(&votersLock);
 
+    // write vote_for command into clientCommands.txt file
+    ofstream clientCommands;
+    clientCommands.open("clientCommands.txt", ofstream::app);
+    if (clientCommands.is_open())
+    {
+        clientCommands << "vote_for_ctrlc " << name << " " << to_string(voterId) << endl;
+    }
+    clientCommands.close();
+
+    // write voter info into votersInfo.txt file (for magic number)
+    ofstream votersInfo;
+    votersInfo.open("votersInfo.txt", ofstream::app);
+    if (votersInfo.is_open())
+    {
+        votersInfo << to_string(voterId) << " " << to_string(magicNumber) << endl;
+    }
+    votersInfo.close();
+
     return res;
+}
+
+void vote_for_ctrlc(string name, int voterId)
+{
+    // check if candidate exists
+    // candidate exists in system: EXISTS
+    bool canVote = false;
+
+    pthread_mutex_lock(&candidatesLock);
+    for (int i = 0; i < (int)candidates.size(); i++)
+    {
+        if (candidates[i]->getName() == name)
+        {
+            // increment vote count by 1
+            candidates[i]->addVotes();
+            // update highest_vote
+            highest_vote = max(highest_vote, candidates[i]->getVotes());
+            canVote = true;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&candidatesLock);
+
+    // candidate not exists in system: NEW
+    if (!canVote)
+    {
+        Candidate *c = new Candidate(name, 1); // set vote to 1
+
+        pthread_mutex_lock(&candidatesLock);
+        candidates.push_back(c);
+        pthread_mutex_unlock(&candidatesLock);
+
+        // update highest_vote
+        highest_vote = max(highest_vote, c->getVotes());
+    }
+
+    bool voterIsUpdated = false;
+    pthread_mutex_lock(&votersLock);
+    for (int i = 0; i < (int)voters.size(); i++)
+    {
+        if (voters[i]->getId() == voterId)
+        {
+            ifstream votersInfo("votersInfo.txt");
+            if (votersInfo.is_open() && votersInfo.peek() != ifstream::traits_type::eof())
+            {
+                string idAndNumber;
+                while (getline(votersInfo, idAndNumber))
+                {
+                    vector<string> splits = parseCmd(idAndNumber, " ");
+                    int id = stoi(splits[0]);
+                    int number = stoi(splits[1]);
+                    if (id == voterId)
+                    {
+                        voters[i]->setMagicNum(number);
+                        voterIsUpdated = true;
+                        break;
+                    }
+                }
+            }
+            votersInfo.close();
+        }
+        if (voterIsUpdated)
+        {
+            break;
+        }
+    }
+    pthread_mutex_unlock(&votersLock);
 }
 
 string check_registration_status(int voterId)
