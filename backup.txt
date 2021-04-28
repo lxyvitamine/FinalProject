@@ -1,6 +1,9 @@
 1
-cit
-0
+cit595
+1
 CANDIDATE
+bob 1
 sally 0
 VOTER
+1000 8301
+1001 0

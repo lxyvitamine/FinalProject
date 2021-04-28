@@ -1,4 +1,7 @@
 #include "helper2.h"
+#include <cereal/archives/xml.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 
 using namespace std;
 
@@ -35,8 +38,7 @@ char sendToClient[MAX_MESSAGE];
 string errorMsg = "ERROR";
 
 // helper to view result of election
-string view_result_helper()
-{
+string view_result_helper() {
     string feedback;
     int numOfWinners = 0;
 
@@ -246,8 +248,7 @@ string add_candidate(string cmdpassword, string candiName)
     return feedback;
 }
 
-string shutdown(string cmdpassword)
-{
+string shutdown(string cmdpassword) {
     string feedback;
     // if password doesn't match, print error
     if (password != cmdpassword) {
@@ -256,41 +257,58 @@ string shutdown(string cmdpassword)
     }
 
     // write into backup.txt
-    ofstream myfile("backup.txt");
+    // ofstream myfile("backup.txt");
+    ofstream myfile("ec6.xml");
+    cereal::XMLOutputArchive archive(myfile);
+    // bool arr[] = {true, false};
+    // std::vector<int> vec = {1, 2, 3, 4, 5};
+    // archive( CEREAL_NVP(vec), arr );
 
     if (myfile.is_open()) {
         // first line: election is ongoing or not
+        string firstline = "1";
         if (isOngoing) {
-            myfile << "1" << endl;
+            // myfile << "1" << endl;
+            archive(firstline);
         } else {
-            myfile << "0" << endl;
+            // myfile << "0" << endl;
+            firstline = "0";
+            archive(firstline);
         }
 
         // second line: add password
-        myfile << password << endl;
+        // myfile << password << endl;
+        archive(password);
 
         // third line: highest_vote
-        myfile << highest_vote << endl;
+        // myfile << highest_vote << endl;
+        archive(highest_vote);
 
         // write candidate
-        myfile << "CANDIDATE" << endl;
         pthread_mutex_lock(&candidatesLock);
-        for (int i = 0; i < (int)candidates.size(); i++) {
-            string candidateInfo = candidates[i]->getName() + " " + to_string(candidates[i]->getVotes());
-            myfile << candidateInfo << endl;
-        }
+        archive(cereal::make_nvp("CANDIDATE", candidates));
         pthread_mutex_unlock(&candidatesLock);
+//         myfile << "CANDIDATE" << endl;
+//         pthread_mutex_lock(&candidatesLock);
+//         for (int i = 0; i < (int)candidates.size(); i++) {
+//             string candidateInfo = candidates[i]->getName() + " " + to_string(candidates[i]->getVotes());
+//             myfile << candidateInfo << endl;
+//         }
+//         pthread_mutex_unlock(&candidatesLock);
 
         // write voters
-        myfile << "VOTER" << endl;
         pthread_mutex_lock(&votersLock);
-        for (int i = 0; i < (int)voters.size(); i++) {
-            string voterInfo = to_string(voters[i]->getId()) + " " + to_string(voters[i]->getMagicNum());
-            myfile << voterInfo << endl;
-        }
+        archive(cereal::make_nvp("VOTER", voters));
         pthread_mutex_unlock(&votersLock);
+//         myfile << "VOTER" << endl;
+//         pthread_mutex_lock(&votersLock);
+//         for (int i = 0; i < (int)voters.size(); i++) {
+//             string voterInfo = to_string(voters[i]->getId()) + " " + to_string(voters[i]->getMagicNum());
+//             myfile << voterInfo << endl;
+//         }
+//         pthread_mutex_unlock(&votersLock);
 
-        myfile.close();
+//        myfile.close();
     }
 
     // delete heap memory
@@ -587,63 +605,74 @@ string view_result()
 // optional argument: -r
 void recover()
 {
-    ifstream myfile("backup.txt"); // hard code to read "backup.txt"
+    ifstream myfile("ec6.xml");
+    cereal::XMLInputArchive archive(myfile);
+
+    // ifstream myfile("backup.txt"); // hard code to read "backup.txt"
 
     if (myfile.is_open())
     {
         // check condition
-        string ongoing;
-        getline(myfile, ongoing);
+        // string ongoing;
+        String firstline;
+        archive(firstline);
+        // getline(myfile, ongoing);
 
-        if (ongoing == "1")
-        {
+        if (firstline == "1") {
             isOngoing = true;
-        }
-        else
-        {
+        } else {
             isOngoing = false;
         }
 
         // check password
         string filePassword;
-        getline(myfile, filePassword);
+        archive(filePassword);
+        // getline(myfile, filePassword);
 
-        if (!changePassword)
-        {
+        if (!changePassword) {
             password = filePassword;
         }
 
         //update highest_vote
         string highest_vote_read;
-        getline(myfile, highest_vote_read);
+        archive(highest_vote_read);
+        // getline(myfile, highest_vote_read);
         highest_vote = stoi(highest_vote_read);
 
         // check Candidate
-        string candidate;
-        getline(myfile, candidate);
+//        string candidate;
+        pthread_mutex_lock(&candidatesLock);
+        archive(candidates);
+        pthread_mutex_unlock(&candidatesLock);
+        
+        pthread_mutex_lock(&votersLock);
+        archive(voters);
+        pthread_mutex_unlock(&votersLock);
+        
+        // getline(myfile, candidate);
 
-        string candidateInfo;
-        while (getline(myfile, candidateInfo) && candidateInfo != "VOTER")
-        {
-            vector<string> store = parseCmd(candidateInfo, " ");
-            Candidate *c = new Candidate(store[0], stoi(store[1]));
+//         string candidateInfo;
+//         while (getline(myfile, candidateInfo) && candidateInfo != "VOTER")
+//         {
+//             vector<string> store = parseCmd(candidateInfo, " ");
+//             Candidate *c = new Candidate(store[0], stoi(store[1]));
 
-            pthread_mutex_lock(&candidatesLock);
-            candidates.push_back(c);
-            pthread_mutex_unlock(&candidatesLock);
-        }
+//             pthread_mutex_lock(&candidatesLock);
+//             candidates.push_back(c);
+//             pthread_mutex_unlock(&candidatesLock);
+//         }
 
-        string voterInfo;
-        while (getline(myfile, voterInfo))
-        {
-            vector<string> vstore = parseCmd(voterInfo, " ");
-            Voter *v = new Voter(stoi(vstore[0]), stoi(vstore[1]));
+//        string voterInfo;
+//         while (getline(myfile, voterInfo))
+//         {
+//             vector<string> vstore = parseCmd(voterInfo, " ");
+//             Voter *v = new Voter(stoi(vstore[0]), stoi(vstore[1]));
 
-            pthread_mutex_lock(&votersLock);
-            voters.push_back(v);
-            pthread_mutex_unlock(&votersLock);
-        }
+//             pthread_mutex_lock(&votersLock);
+//             voters.push_back(v);
+//             pthread_mutex_unlock(&votersLock);
+//         }
 
-        myfile.close();
+//         myfile.close();
     }
 }
