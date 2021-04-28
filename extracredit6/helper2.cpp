@@ -614,7 +614,7 @@ void recover()
     {
         // check condition
         // string ongoing;
-        String firstline;
+        string firstline;
         archive(firstline);
         // getline(myfile, ongoing);
 

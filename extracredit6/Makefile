@@ -1,5 +1,5 @@
 TARGETS = server client
-CPPFLAGS = -g -Wall -Werror -pthread -std=c++14 -I./cereal1/include -L./cereal1/include
+CPPFLAGS = -g -Wall -Werror -pthread -std=c++14 -I. -L.
 SRC_CPP_FILES := $(wildcard *.cpp)
 
 $(OBJS_CPP): $(SRC_CPP_FILES)
