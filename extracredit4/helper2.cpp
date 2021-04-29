@@ -589,7 +589,7 @@ void recover()
 {
     ifstream myfile("backup.txt"); // hard code to read "backup.txt"
 
-    if (myfile.is_open() && myfile.peek() != ifstream::traits_type::eof())
+    if (myfile.is_open())
     {
         // check condition
         string ongoing;
