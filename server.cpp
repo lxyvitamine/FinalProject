@@ -1,41 +1,38 @@
 #include "helper2.h"
 #include <netinet/ip.h>
 #include <signal.h>
-// #include <sys/socket.h>
 
 using namespace std;
 
-// pid_t pid;
-
-// pthread_mutex_t mainLock;
-
-//signal handler for SIGINT
-// void handleSigusr1(int signo)
-// {
-//     //exit(0);
-// }
-
 void *parseUserinput(void *input);
 
-void *threadHelper(void *argSd)
-{
+// Extra Credit 5: signal handler for SIGINT (Ctrl+C)
+void signalHandler(int signum) {
+    pthread_mutex_lock(&isShutdownLock);
+    isShutdown = true;
+    pthread_mutex_unlock(&isShutdownLock);
+    // call shutdown
+    pthread_mutex_lock(&parseUserinputLock);
+    shutdown(password);
+    pthread_mutex_unlock(&parseUserinputLock);
+    exit(signum);
+}
+
+void *threadHelper(void *argSd) {
     int threadSd = *(int *)argSd;
     delete (int *)argSd;
 
-    // Do we need while loop?
     // receive message 1023 chars with \n
     char cmdFromClient[MAX_MESSAGE];
 
-    if (recv(threadSd, &cmdFromClient, sizeof(char) * MAX_MESSAGE, 0) == -1)
-    {
+    if (recv(threadSd, &cmdFromClient, sizeof(char) * MAX_MESSAGE, 0) == -1) {
         cout << "ERROR: receiving data" << endl;
     }
 
     // change char to string
     string input(cmdFromClient);
 
-    if (input.compare("shutdown " + password) == 0)
-    { // equal
+    if (input.compare("shutdown " + password) == 0) { // equal
         pthread_mutex_lock(&isShutdownLock);
         isShutdown = true;
         pthread_mutex_unlock(&isShutdownLock);
@@ -46,54 +43,29 @@ void *threadHelper(void *argSd)
 
         char shutdownOK[MAX_MESSAGE] = "[R]: OK";
 
-        if ((int)send(threadSd, &shutdownOK, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE))
-        {
+        if ((int)send(threadSd, &shutdownOK, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE)) {
             cout << "ERROR: sending data" << endl;
         }
 
-        //pthread_mutex_lock(&sdLock);
         shutdown(sd, SHUT_RDWR);
-        //pthread_mutex_unlock(&sdLock);
-
         close(threadSd);
-        //pthread_detach(pthread_self());
-        //kill(pid, SIGUSR1);
-    }
-    else
-    {
-        // create new thread
+    } else {
         // call parseuserinput
-        //userCmds[running_thread] = input;
-        //pthread_create(&threads[running_thread], NULL, parseUserinput, &userCmds[running_thread]);
-        //pthread_t tid;
-        //pthread_create(&tid, NULL, parseUserinput, &input);
-        // send feedback
-        //thread join
-        //pthread_join(tid, NULL);
         parseUserinput(&input);
-        //pthread_mutex_lock(&runningThreadLock);
-        //running_thread++;
-        //pthread_mutex_unlock(&runningThreadLock);
-
+        
         pthread_mutex_lock(&sendToClientLock);
-        if ((int)send(threadSd, &sendToClient, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE))
-        {
+        if ((int)send(threadSd, &sendToClient, sizeof(char) * MAX_MESSAGE, 0) < (int)(sizeof(char) * MAX_MESSAGE)) {
             cout << "ERROR: sending data" << endl;
         }
         memset(sendToClient, 0, MAX_MESSAGE);
         pthread_mutex_unlock(&sendToClientLock);
 
         close(threadSd);
-        //pthread_detach(pthread_self());
-        //pthread_exit(NULL);
     }
-    // pthread_detach(pthread_self());
-    // pthread_exit(0);
     return NULL;
 }
 
-void *parseUserinput(void *input)
-{
+void *parseUserinput(void *input) {
     pthread_mutex_lock(&parseUserinputLock);
 
     string userinput = *(static_cast<string *>(input));
@@ -257,10 +229,8 @@ void *parseUserinput(void *input)
     return NULL;
 }
 
-int main(int argc, char *argv[])
-{
-    // pid = getpid();
-    // signal(SIGUSR1, handleSigusr1);
+int main(int argc, char *argv[]){
+    signal(SIGINT, signalHandler);
 
     //default to 10000
     unsigned short int port = 10000;
