@@ -249,6 +249,31 @@ void recover_from_ctrlc()
     clientCommands.close();
 }
 
+void *checkpoint(void *intervalPtr)
+{
+    int interval = *(int *)intervalPtr;
+    time_t start = time(0);
+
+    while (1)
+    {
+        pthread_mutex_lock(&isShutdownLock);
+        if (isShutdown)
+        {
+            pthread_mutex_unlock(&isShutdownLock);
+            return NULL;
+        }
+        pthread_mutex_unlock(&isShutdownLock);
+
+        if (time(0) - start == interval)
+        {
+            pthread_mutex_lock(&parseUserinputLock);
+            saveStateToBackup();
+            pthread_mutex_unlock(&parseUserinputLock);
+            start += interval;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     //default to 10000
@@ -354,6 +379,10 @@ int main(int argc, char *argv[])
         throw "Failed to initialize a mutex";
     }
 
+    // thread for checkpoint
+    pthread_t tid1;
+    pthread_create(&tid1, NULL, checkpoint, &checkpointInterval);
+
     while (1)
     {
         pthread_mutex_lock(&isShutdownLock);
@@ -382,6 +411,8 @@ int main(int argc, char *argv[])
             cout << "ERROR: creating threads for clients" << endl;
         }
     }
+
+    pthread_join(tid1, NULL);
 
     for (auto tid : clientThreads)
     {

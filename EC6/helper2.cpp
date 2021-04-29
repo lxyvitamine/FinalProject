@@ -141,10 +141,10 @@ string helper2::start_election(string cmdpassword)
         }
         else
         {
-            // clean the backup.txt file
-            ofstream ofs;
-            ofs.open("backup.txt", ofstream::out | ofstream::trunc);
-            ofs.close();
+            // // clean the backup.txt file
+            // ofstream ofs;
+            // ofs.open("backup.txt", ofstream::out | ofstream::trunc);
+            // ofs.close();
 
             isOngoing = true;
             highest_vote = 0;

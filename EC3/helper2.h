@@ -28,8 +28,6 @@ extern int highest_vote;
 extern bool changePassword;
 extern int isShutdown;
 // main() & mutex
-extern string userCmds[];
-
 extern pthread_mutex_t sdLock;
 extern pthread_mutex_t isShutdownLock;
 extern pthread_mutex_t parseUserinputLock;
@@ -41,6 +39,8 @@ extern int sd;
 extern const int MAX_MESSAGE;
 extern char sendToClient[];
 extern string errorMsg;
+
+extern int checkpointInterval;
 
 // helper function
 string view_result_helper();
@@ -77,3 +77,5 @@ void end_election_ctrlc();
 void add_candidate_ctrlc(string candiName);
 void add_voter_ctrlc(int voterId);
 void vote_for_ctrlc(string name, int voterId);
+// checkpoint
+void saveStateToBackup();

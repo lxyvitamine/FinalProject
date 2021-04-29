@@ -1,7 +1,9 @@
-0
+1
 cit595
 1
 CANDIDATE
 bob 1
+sally 0
+tom 0
 VOTER
-1000 77319
+1000 29611

@@ -28,6 +28,8 @@ const int MAX_MESSAGE = 1024;
 char sendToClient[MAX_MESSAGE];
 string errorMsg = "ERROR";
 
+int checkpointInterval = 30;
+
 // helper to view result of election
 string view_result_helper()
 {
@@ -290,6 +292,8 @@ void add_candidate_ctrlc(string candiName)
     pthread_mutex_unlock(&candidatesLock);
 }
 
+void saveStateToBackup();
+
 string shutdown(string cmdpassword)
 {
     string feedback;
@@ -300,59 +304,7 @@ string shutdown(string cmdpassword)
         return feedback;
     }
 
-    // write into backup.txt
-    ofstream myfile("backup.txt");
-
-    if (myfile.is_open())
-    {
-        // first line: is ongoing or not
-        if (isOngoing)
-        {
-            myfile << "1" << endl;
-        }
-        else
-        {
-            myfile << "0" << endl;
-        }
-
-        //second line: add password
-        myfile << password << endl;
-
-        //third line: highest_vote
-        myfile << highest_vote << endl;
-
-        // write candidate
-        myfile << "CANDIDATE" << endl;
-        pthread_mutex_lock(&candidatesLock);
-        for (int i = 0; i < (int)candidates.size(); i++)
-        {
-            string candidateInfo = candidates[i]->getName() + " " + to_string(candidates[i]->getVotes());
-            myfile << candidateInfo << endl;
-        }
-        pthread_mutex_unlock(&candidatesLock);
-
-        // write voters
-        myfile << "VOTER" << endl;
-        pthread_mutex_lock(&votersLock);
-        for (int i = 0; i < (int)voters.size(); i++)
-        {
-            string voterInfo = to_string(voters[i]->getId()) + " " + to_string(voters[i]->getMagicNum());
-            myfile << voterInfo << endl;
-        }
-        pthread_mutex_unlock(&votersLock);
-
-        myfile.close();
-    }
-
-    // clean the clientCommands.txt file
-    ofstream clientCommands;
-    clientCommands.open("clientCommands.txt", ofstream::out | ofstream::trunc);
-    clientCommands.close();
-
-    // clean the votersInfo.txt file
-    ofstream votersInfo;
-    votersInfo.open("votersInfo.txt", ofstream::out | ofstream::trunc);
-    votersInfo.close();
+    saveStateToBackup();
 
     // delete heap memory
     pthread_mutex_lock(&candidatesLock);
@@ -803,4 +755,61 @@ void recover()
 
         myfile.close();
     }
+}
+
+void saveStateToBackup()
+{
+    // write into backup.txt
+    ofstream myfile("backup.txt");
+
+    if (myfile.is_open())
+    {
+        // first line: is ongoing or not
+        if (isOngoing)
+        {
+            myfile << "1" << endl;
+        }
+        else
+        {
+            myfile << "0" << endl;
+        }
+
+        //second line: add password
+        myfile << password << endl;
+
+        //third line: highest_vote
+        myfile << highest_vote << endl;
+
+        // write candidate
+        myfile << "CANDIDATE" << endl;
+        pthread_mutex_lock(&candidatesLock);
+        for (int i = 0; i < (int)candidates.size(); i++)
+        {
+            string candidateInfo = candidates[i]->getName() + " " + to_string(candidates[i]->getVotes());
+            myfile << candidateInfo << endl;
+        }
+        pthread_mutex_unlock(&candidatesLock);
+
+        // write voters
+        myfile << "VOTER" << endl;
+        pthread_mutex_lock(&votersLock);
+        for (int i = 0; i < (int)voters.size(); i++)
+        {
+            string voterInfo = to_string(voters[i]->getId()) + " " + to_string(voters[i]->getMagicNum());
+            myfile << voterInfo << endl;
+        }
+        pthread_mutex_unlock(&votersLock);
+
+        myfile.close();
+    }
+
+    // clean the clientCommands.txt file
+    ofstream clientCommands;
+    clientCommands.open("clientCommands.txt", ofstream::out | ofstream::trunc);
+    clientCommands.close();
+
+    // clean the votersInfo.txt file
+    ofstream votersInfo;
+    votersInfo.open("votersInfo.txt", ofstream::out | ofstream::trunc);
+    votersInfo.close();
 }
