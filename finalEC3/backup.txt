@@ -1,0 +1,7 @@
+0
+cit595
+1
+CANDIDATE
+bob 1
+VOTER
+1000 77319
