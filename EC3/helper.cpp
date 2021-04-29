@@ -21,11 +21,6 @@ string userCmds[MAX_LIMIT];
 
 pthread_mutex_t parseLock;
 pthread_mutex_t runningThreadLock;
-// pthread_mutex_t userCmdsLock;
-// pthread_mutex_t candidatesLock;
-// pthread_mutex_t votersLock;
-// pthread_mutex_t inputLock;
-// pthread_mutex_t magicNumLock;
 
 // helper to view result of election
 void view_result_helper()
@@ -293,7 +288,7 @@ void shutdown(string cmdpassword)
 
 // VOTER //
 void add_voter(int voterId)
-{   
+{
     cout << "[C]: add_voter " << voterId << endl;
 
     if (!isOngoing || voterId > 9999 || voterId < 1000)

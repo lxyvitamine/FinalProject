@@ -5,10 +5,6 @@ using namespace std;
 // GLOBAL VARIABLE //
 // dealing with threads
 vector<pthread_t> clientThreads;
-// int clientIndex = 0;
-// const int MAX_LIMIT = 9999;
-// pthread_t threads[MAX_LIMIT];
-// int running_thread = 0;
 // password
 string password = "cit595";
 vector<Candidate *> candidates;
@@ -20,15 +16,13 @@ int highest_vote = 0;
 bool changePassword = false;
 int isShutdown = false;
 // main() & mutex
-// string userCmds[MAX_LIMIT];
 pthread_mutex_t sdLock;
 pthread_mutex_t isShutdownLock;
 pthread_mutex_t parseUserinputLock;
 pthread_mutex_t sendToClientLock;
 pthread_mutex_t candidatesLock;
 pthread_mutex_t votersLock;
-// pthread_mutex_t inputLock;
-// pthread_mutex_t magicNumLock;
+
 int sd;
 const int MAX_MESSAGE = 1024;
 char sendToClient[MAX_MESSAGE];
@@ -79,12 +73,10 @@ string view_result_helper()
                     if (commaCount == numOfWinners)
                     {
                         feedback = feedback + (*it)->getName();
-                        // cout << (*it)->getName() << endl;
                     }
                     else
                     {
                         feedback = feedback + (*it)->getName() + ", ";
-                        //cout << (*it)->getName() << ", ";
                     }
                 }
             }
@@ -237,14 +229,6 @@ string end_election(string cmdpassword)
     }
     clientCommands.close();
 
-    // end threads
-    //     pthread_mutex_lock(&runningThreadLock);
-    //     for (int i = 0; i < running_thread; i++)
-    //     {
-    //         pthread_detach(threads[i]);
-    //     }
-    //     pthread_mutex_unlock(&runningThreadLock);
-
     feedback = view_result_helper();
 
     return feedback;
@@ -258,7 +242,6 @@ void end_election_ctrlc()
 string add_candidate(string cmdpassword, string candiName)
 {
     string feedback;
-    //cout << "[C]: add_candidate " << cmdpassword << " " << candiName << endl;
 
     // check isOngoing flag and password
     if (cmdpassword != password || !isOngoing)
@@ -316,15 +299,6 @@ string shutdown(string cmdpassword)
         feedback = "[R]: ERROR";
         return feedback;
     }
-
-    // end thread
-    //     if (isOngoing)
-    //     {
-    //         for (int i = 0; i < running_thread; i++)
-    //         {
-    //             pthread_detach(threads[i]);
-    //         }
-    //     }
 
     // write into backup.txt
     ofstream myfile("backup.txt");
@@ -511,7 +485,6 @@ string vote_for(string name, int voterId)
     {
         if (candidates[i]->getName() == name)
         {
-            //cout << "[R]: EXISTS" << endl;
             res = "[R]: EXISTS";
             // increment vote count by 1
             candidates[i]->addVotes();
@@ -534,7 +507,6 @@ string vote_for(string name, int voterId)
 
         // update highest_vote
         highest_vote = max(highest_vote, c->getVotes());
-        //cout << "[R]: NEW" << endl;
         res = "[R]: NEW";
     }
 
@@ -553,7 +525,6 @@ string vote_for(string name, int voterId)
         {
             voters[i]->setMagicNum(magicNumber);
             res = res + "\n" + to_string(magicNumber);
-            //cout << magicNumber << endl;
             break;
         }
     }
@@ -711,7 +682,6 @@ string check_voter_status(int voterId, int magicNum)
 // ANY USER //
 string list_candidtates()
 {
-    // cout << "[C]: list_candidtates" << endl;
     string res = "[R]: ";
 
     if (isOngoing)
@@ -728,8 +698,6 @@ string list_candidtates()
             {
                 res = res + (*it)->getName();
             }
-
-            //cout << (*it)->getName() << endl;
         }
         pthread_mutex_unlock(&candidatesLock);
 

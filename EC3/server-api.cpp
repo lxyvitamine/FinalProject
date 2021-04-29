@@ -26,7 +26,6 @@ void *parseUserinput(void *input)
         else
         {
             cout << "ERROR" << endl;
-            //pthread_exit(NULL);
         }
     }
     // 1 argument
@@ -43,16 +42,10 @@ void *parseUserinput(void *input)
         {
             end_election(arg);
         }
-        // else if (cmd == "shutdown")
-        // {
-        //     shutdown(arg);
-        // }
         else if (cmd == "add_voter")
         {
             if (!isNumber(arg))
             {
-                //end thread
-                //pthread_exit(NULL);
                 cout << "[R]: ERROR" << endl;
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
@@ -63,8 +56,6 @@ void *parseUserinput(void *input)
         {
             if (!isNumber(arg))
             {
-                //end thread
-                //pthread_exit(NULL);
                 cout << "ERROR" << endl;
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
@@ -78,7 +69,6 @@ void *parseUserinput(void *input)
         else
         {
             cout << "ERROR" << endl;
-            //pthread_exit(NULL);
         }
     }
     // 2 argument
@@ -96,7 +86,6 @@ void *parseUserinput(void *input)
         {
             if (!isNumber(arg2))
             {
-                //pthread_exit(NULL);
                 cout << "ERROR" << endl;
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
@@ -107,7 +96,6 @@ void *parseUserinput(void *input)
         {
             if (!isNumber(arg1) || !isNumber(arg2))
             {
-                //pthread_exit(NULL);
                 cout << "ERROR" << endl;
                 pthread_mutex_unlock(&parseLock);
                 return NULL;
@@ -117,14 +105,12 @@ void *parseUserinput(void *input)
         else
         {
             cout << "ERROR" << endl;
-            //pthread_exit(NULL);
         }
     }
     else
     {
         cout << "ERROR" << endl;
     }
-    //pthread_exit(NULL);
 
     pthread_mutex_unlock(&parseLock);
 
@@ -164,18 +150,6 @@ int main(int argc, char *argv[])
 
     if (0 != pthread_mutex_init(&runningThreadLock, NULL))
         throw "Failed to initialize a mutex";
-
-    // if (0 != pthread_mutex_init(&userCmdsLock, NULL))
-    //     throw "Failed to initialize a mutex";
-
-    // if (0 != pthread_mutex_init(&candidatesLock, NULL))
-    //     throw "Failed to initialize a mutex";
-
-    // if (0 != pthread_mutex_init(&votersLock, NULL))
-    //     throw "Failed to initialize a mutex";
-
-    // if (0 != pthread_mutex_init(&inputLock, NULL))
-    //     throw "Failed to initialize a mutex";
 
     // 2. read input
     while (1)

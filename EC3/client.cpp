@@ -5,11 +5,6 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    //     cout << "argc is: " << argc << endl;
-    //     cout << "argv[0] is: " << argv[0] << endl;
-    //     cout << "argv[1] is: " << argv[1] << endl;
-    //     cout << "argv[2] is: " << argv[2] << endl;
-    // argc should be 3
     if (argc != 3)
     {
         cout << "Usage: ./client <port> “<command_name> <arg1> <arg2> ... <argN>”" << endl;
@@ -51,7 +46,6 @@ int main(int argc, char *argv[])
     // print command
     cout << "[C]: " << command << endl;
 
-    //string s(input);
     //send message to server
     if (send(clientSocket, &input, sizeof(input), 0) < (int)sizeof(input))
     {
@@ -59,7 +53,6 @@ int main(int argc, char *argv[])
     }
 
     // get feedback
-    // string feedback;
     char feedback[MAX_MESSAGE];
 
     if (recv(clientSocket, &feedback, sizeof(char) * MAX_MESSAGE, 0) == -1)

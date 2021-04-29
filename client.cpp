@@ -5,10 +5,6 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    //     cout << "argc is: " << argc << endl;
-    //     cout << "argv[0] is: " << argv[0] << endl;
-    //     cout << "argv[1] is: " << argv[1] << endl;
-    //     cout << "argv[2] is: " << argv[2] << endl;
     // argc should be 3
     if (argc != 3)
     {

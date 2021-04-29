@@ -17,10 +17,6 @@ using namespace std;
 // GLOBAL VARIABLE //
 // dealing with threads
 extern vector<pthread_t> clientThreads;
-// extern int clientIndex;
-// extern const int MAX_LIMIT;
-// extern pthread_t threads[];
-// extern int running_thread;
 // password
 extern string password;
 extern vector<Candidate *> candidates;
@@ -40,8 +36,7 @@ extern pthread_mutex_t parseUserinputLock;
 extern pthread_mutex_t sendToClientLock;
 extern pthread_mutex_t candidatesLock;
 extern pthread_mutex_t votersLock;
-// extern pthread_mutex_t inputLock;
-// extern pthread_mutex_t magicNumLock;
+
 extern int sd;
 extern const int MAX_MESSAGE;
 extern char sendToClient[];
